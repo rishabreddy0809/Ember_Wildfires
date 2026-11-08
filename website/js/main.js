@@ -1,0 +1,176 @@
+// main.js: starts everything. Navigation, scroll animations, counters,
+// the Random Forest demo, and the three 3D scenes (each in its own file).
+
+import { hasWebGL, reduceMotion } from './lib.js';
+
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+$('#year').textContent = new Date().getFullYear();
+const fmt = (n) => n.toLocaleString('en-US');
+
+/* ---------- Navigation ---------- */
+{
+  const nav = $('#nav'), toggle = $('.nav-toggle'), links = $('#nav-links');
+  const story = $('#story');
+  const onScroll = () => nav.classList.toggle('solid', scrollY > story.offsetTop + story.offsetHeight - 60);
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  toggle.addEventListener('click', () => { const o = links.classList.toggle('open'); toggle.setAttribute('aria-expanded', o); });
+  $$('a', links).forEach((a) => a.addEventListener('click', () => { links.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); }));
+  const map = new Map($$('a', links).map((a) => [a.getAttribute('href').slice(1), a]));
+  const spy = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting && map.has(e.target.id)) { map.forEach((a) => a.classList.remove('active')); map.get(e.target.id).classList.add('active'); }
+  }), { rootMargin: '-45% 0px -50% 0px' });
+  $$('section[id]').forEach((s) => spy.observe(s));
+}
+
+/* ---------- Count-up numbers ---------- */
+function countUp(el, to, { decimals = to % 1 ? 2 : 0, suffix = '', ms = 1600 } = {}) {
+  if (reduceMotion) { el.textContent = to.toFixed(decimals) + suffix; return; }
+  const start = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - start) / ms), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = (to * e).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + suffix;
+    if (k < 1) requestAnimationFrame(step);
+    else el.textContent = to.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + suffix;
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- Scroll reveal (+ bars and counters start when visible) ---------- */
+{
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    el.classList.add('in');
+    $$('[data-count]', el).forEach((c) => countUp(c, parseFloat(c.dataset.count), { suffix: c.dataset.suffix || '', decimals: c.dataset.count.includes('.') ? (c.dataset.count.split('.')[1].length) : 0 }));
+    io.unobserve(el);
+  }), { threshold: 0.15 });
+  $$('.reveal').forEach((el, i) => { el.style.transitionDelay = `${(i % 3) * 80}ms`; io.observe(el); });
+}
+
+/* ---------- Random Forest demo (HTML, no 3D) ---------- */
+{
+  // Five toy trees with made-up rules. A real Random Forest learns its own questions from training data.
+  const TREES = [
+    { q: '3+ detections nearby?', vote: (d) => d.neighbors >= 3 },
+    { q: 'Fire power over 8 MW?', vote: (d) => d.frp > 8 },
+    { q: 'Hotter than 330 K?', vote: (d) => d.bright > 330 },
+    { q: 'Confidence high?', vote: (d) => (d.sensor === 'MODIS' ? d.conf >= 60 : d.conf !== 'low') },
+    { q: 'Night & over 310 K?', vote: (d) => (d.night && d.bright > 310) || d.neighbors >= 6 },
+  ];
+  const svg = `<svg viewBox="0 0 34 34" aria-hidden="true"><g stroke="currentColor" stroke-width="1.4" fill="none" opacity=".75"><path d="M17 7 9 17M17 7l8 10M9 17l-4 10M9 17l4 10M25 17l-4 10M25 17l4 10"/></g><g fill="currentColor"><circle cx="17" cy="6" r="3"/><circle cx="9" cy="17" r="2.5"/><circle cx="25" cy="17" r="2.5"/><circle cx="5" cy="28" r="2"/><circle cx="13" cy="28" r="2"/><circle cx="21" cy="28" r="2"/><circle cx="29" cy="28" r="2"/></g></svg>`;
+  const card = $('#rf-card'), trees = $('#rf-trees'), verdict = $('#rf-verdict');
+  let det, timers = [];
+  const r = (a, b) => a + Math.random() * (b - a);
+  const newDet = () => {
+    const fire = Math.random() < 0.55, sensor = Math.random() < 0.45 ? 'MODIS' : 'VIIRS';
+    return {
+      sensor, night: Math.random() < 0.4,
+      bright: Math.round(fire ? r(318, 382) : r(298, 340)),
+      frp: +(fire ? r(4, 60) : r(0.4, 12)).toFixed(1),
+      conf: sensor === 'MODIS' ? Math.round(fire ? r(45, 100) : r(10, 75)) : fire ? (Math.random() < 0.3 ? 'high' : 'nominal') : (Math.random() < 0.6 ? 'low' : 'nominal'),
+      neighbors: Math.round(fire ? r(2, 12) : r(0, 3)),
+    };
+  };
+  const render = () => {
+    timers.forEach(clearTimeout); timers = [];
+    const rows = [['Sensor', det.sensor], ['Brightness', det.bright + ' K'], ['Fire power', det.frp + ' MW'],
+      ['Confidence', det.sensor === 'MODIS' ? det.conf + '%' : det.conf], ['Time', det.night ? 'Night' : 'Day'], ['Neighbors', det.neighbors]];
+    card.innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+    card.querySelector('dd').style.color = det.sensor === 'MODIS' ? 'var(--modis)' : 'var(--viirs)';
+    trees.innerHTML = TREES.map((t) => `<div class="tree">${svg}<span class="q">${t.q}</span><span class="v">…</span></div>`).join('');
+    verdict.textContent = 'Is this detection a real fire or a false alarm?';
+  };
+  const run = () => {
+    render();
+    let yes = 0;
+    $$('.tree', trees).forEach((el, i) => timers.push(setTimeout(() => {
+      const v = TREES[i].vote(det); if (v) yes++;
+      el.classList.add('voted', v ? 'yes' : 'no');
+      el.querySelector('.v').textContent = v ? 'Fire' : 'Not fire';
+      if (i === TREES.length - 1) {
+        const fire = yes >= 3;
+        verdict.innerHTML = `${yes} of 5 trees voted “fire”, so the forest's answer is: <span class="${fire ? 'yes' : 'no'}">${fire ? 'real fire' : 'false alarm'}</span>.`;
+      }
+    }, reduceMotion ? 0 : 320 * (i + 1))));
+  };
+  $('#rf-run').addEventListener('click', run);
+  $('#rf-new').addEventListener('click', () => { det = newDet(); render(); });
+  det = newDet(); render();
+}
+
+/* ---------- Title animation ----------
+   Wrap each word in two spans so it can rise out of a clipped box. */
+const title = $('#title');
+{
+  let i = 0;
+  const wrap = (node) => {
+    [...node.childNodes].forEach((n) => {
+      if (n.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        n.textContent.split(/(\s+)/).forEach((part) => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) { frag.append(part); return; }
+          const w = document.createElement('span'); w.className = 'w';
+          const inner = document.createElement('span'); inner.textContent = part; inner.style.setProperty('--i', i++);
+          w.append(inner); frag.append(w);
+        });
+        n.replaceWith(frag);
+      } else wrap(n);
+    });
+  };
+  wrap(title);
+  title.style.setProperty('--hl-delay', `${0.15 + i * 0.042 + 0.5}s`);
+}
+let played = false;
+const playTitle = () => {
+  if (played) return; played = true;
+  requestAnimationFrame(() => { title.classList.add('play', 'lit'); title.closest('.step-hero').classList.add('play'); });
+};
+
+/* ---------- 3D scenes ---------- */
+const finishLoading = () => { document.body.classList.remove('loading'); setTimeout(playTitle, 250); };
+setTimeout(finishLoading, 8000);   // never leave the loading screen up forever
+
+if (!hasWebGL()) {
+  document.documentElement.classList.add('no-webgl');
+  finishLoading();
+} else {
+  // Globe: load first, since it's at the top of the page
+  import('./globe.js').then(({ initGlobe }) => initGlobe({
+    canvas: $('#globe'),
+    story: $('#story'),
+    onReady: async () => {
+      finishLoading();
+      try {
+        const meta = await (await fetch('data/meta.json')).json();
+        countUp($('#hud-modis'), meta.modis, { ms: 2200 });
+        countUp($('#hud-viirs'), meta.viirs, { ms: 2200 });
+        $('#s1-total').textContent = fmt(meta.modis + meta.viirs);
+        $('#s3-ca').textContent = fmt(meta.california);
+        const d = meta.dates.map((s) => new Date(s + 'T00:00:00Z'));
+        const opt = { month: 'short', day: 'numeric', timeZone: 'UTC' };
+        const range = `${d[0].toLocaleDateString('en-US', opt)}–${d.at(-1).toLocaleDateString('en-US', { day: 'numeric', timeZone: 'UTC' })}, ${d[0].getUTCFullYear()}`;
+        $('#s1-dates').textContent = range;
+        $('#hud-date').textContent = `NASA FIRMS detections, ${range} (UTC)`;
+      } catch { /* the numbers already in the HTML stay */ }
+    },
+    onProgress: (p) => {
+      $('#story-progress').style.height = `${p * 100}%`;
+      $('#scroll-cue').style.opacity = p > 0.03 ? 0 : 1;
+      document.body.classList.toggle('story-start', p < 0.12);
+    },
+  })).catch((e) => { console.error(e); document.documentElement.classList.add('no-webgl'); finishLoading(); });
+
+  // The other two scenes load only when you scroll near them
+  const lazy = (el, load) => {
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); load(); } }, { rootMargin: '600px' });
+    io.observe(el);
+  };
+  lazy($('#scan-viz'), () => import('./scan.js').then(({ initScan }) => initScan({
+    canvas: $('#scan-canvas'), slider: $('#scan-slider'), sizeOut: $('#scan-size'), areaOut: $('#scan-area'), segButtons: $$('#scan-viz .seg button'),
+  })));
+  lazy($('#cube-viz'), () => import('./cube.js').then(({ initCube }) => initCube({
+    canvas: $('#cube-canvas'), labelsEl: $('#cube-labels'), runBtn: $('#cube-run'), resetBtn: $('#cube-reset'),
+  })));
+}

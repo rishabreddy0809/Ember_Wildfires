@@ -1,0 +1,13 @@
+# Your NASA FIRMS MAP_KEY. Never commit this file.
+MyApp/Secrets.plist
+
+# Xcode
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+.DS_Store
+
+# Vercel and local env files (may contain tokens)
+.vercel/
+.env*
