@@ -1,7 +1,7 @@
 # Project website
 
-A static site for the science fair project "Clustering vs. Machine Learning: Identifying Real Wildfires
-from Harmonized MODIS and VIIRS Satellite Data". It's built with HTML, CSS, JavaScript and three.js
+The demo site for **Ember**, a NASA Space Apps Challenge project (originally a science fair project,
+"Clustering vs. Machine Learning: Identifying Real Wildfires from Harmonized MODIS and VIIRS Satellite Data"). It's built with HTML, CSS, JavaScript and three.js
 (stored in `vendor/`), and needs no build step.
 
 ## Preview on your Mac
@@ -20,6 +20,7 @@ Then open http://localhost:8000. Press Ctrl-C in Terminal to stop.
 | `js/globe.js` | The 3D Earth with real FIRMS detections (top of the page) |
 | `js/scan.js` | 3D satellite scan / pixel-size demo |
 | `js/cube.js` | 3D space-time cube DBSCAN demo |
+| `js/appmock.js` | Interactive Ember app preview (real detections by region, click to inspect) |
 | `js/main.js` | Navigation, counters, Random Forest demo, starts the 3D scenes |
 | `data/fires.bin` | Every MODIS + NOAA-20 VIIRS detection from one 24-hour FIRMS global file (packed) |
 | `data/land.bin` | Dots on land for the globe (from Natural Earth, public domain) |
@@ -27,9 +28,11 @@ Then open http://localhost:8000. Press Ctrl-C in Terminal to stop.
 | `vendor/three/` | three.js r170 (MIT license) |
 
 ## Things to edit
-- **Screenshots:** put PNGs in `images/` and follow the `✏️ ADD YOUR SCREENSHOTS HERE` comment in index.html.
-- **Results:** follow `✏️ ADD YOUR RESULTS HERE LATER` once the experiment is done.
-- **About you:** replace the highlighted `[Edit me: …]` text.
+Search index.html for `✏️` to find the spots meant for you:
+- **Hero badge:** add your team name or Space Apps location.
+- **Results:** replace the "Experiment in progress" pill once the experiment is done.
+- **Roadmap:** adjust the "Next" items to your real plans.
+- **Team:** add teammates or a line about yourself.
 
 ## Publish on GitHub Pages
 1. Create a new public repository on github.com (for example `wildfire-research`).

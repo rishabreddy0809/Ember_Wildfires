@@ -16,7 +16,7 @@ const fmt = (n) => n.toLocaleString('en-US');
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
   toggle.addEventListener('click', () => { const o = links.classList.toggle('open'); toggle.setAttribute('aria-expanded', o); });
   $$('a', links).forEach((a) => a.addEventListener('click', () => { links.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); }));
-  const map = new Map($$('a', links).map((a) => [a.getAttribute('href').slice(1), a]));
+  const map = new Map($$('a:not(.nav-cta)', links).map((a) => [a.getAttribute('href').slice(1), a]));
   const spy = new IntersectionObserver((es) => es.forEach((e) => {
     if (e.isIntersecting && map.has(e.target.id)) { map.forEach((a) => a.classList.remove('active')); map.get(e.target.id).classList.add('active'); }
   }), { rootMargin: '-45% 0px -50% 0px' });
@@ -147,6 +147,7 @@ if (!hasWebGL()) {
         countUp($('#hud-modis'), meta.modis, { ms: 2200 });
         countUp($('#hud-viirs'), meta.viirs, { ms: 2200 });
         $('#s1-total').textContent = fmt(meta.modis + meta.viirs);
+        $('#hero-total').textContent = fmt(meta.modis + meta.viirs);
         $('#s3-ca').textContent = fmt(meta.california);
         const d = meta.dates.map((s) => new Date(s + 'T00:00:00Z'));
         const opt = { month: 'short', day: 'numeric', timeZone: 'UTC' };
@@ -169,6 +170,11 @@ if (!hasWebGL()) {
   };
   lazy($('#scan-viz'), () => import('./scan.js').then(({ initScan }) => initScan({
     canvas: $('#scan-canvas'), slider: $('#scan-slider'), sizeOut: $('#scan-size'), areaOut: $('#scan-area'), segButtons: $$('#scan-viz .seg button'),
+  })));
+  lazy($('#app-demo'), () => import('./appmock.js').then(({ initAppMock }) => initAppMock({
+    canvas: $('#app-canvas'), regionsEl: $('#app-regions'), modisBox: $('#app-modis'), viirsBox: $('#app-viirs'),
+    nModis: $('#app-n-modis'), nViirs: $('#app-n-viirs'), regionName: $('#app-region-name'),
+    inspector: $('#app-inspect-body'), hint: $('#app-hint'), colorButtons: $$('#app-demo .seg button'),
   })));
   lazy($('#cube-viz'), () => import('./cube.js').then(({ initCube }) => initCube({
     canvas: $('#cube-canvas'), labelsEl: $('#cube-labels'), runBtn: $('#cube-run'), resetBtn: $('#cube-reset'),
