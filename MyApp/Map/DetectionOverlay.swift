@@ -12,12 +12,12 @@
 import MapKit
 import AppKit
 
-/// Sensor colors, also used by the SwiftUI views (see Theme.swift).
+/// Sensor colors for Core Graphics drawing. They must match Theme.modis and Theme.viirs in Theme.swift.
 nonisolated enum SensorPalette {
     static func cgColor(_ s: Sensor, alpha: CGFloat = 1) -> CGColor {
         switch s {
-        case .modis: CGColor(srgbRed: 1.00, green: 0.62, blue: 0.10, alpha: alpha)  // solar amber
-        case .viirs: CGColor(srgbRed: 0.20, green: 0.90, blue: 1.00, alpha: alpha)  // ice cyan
+        case .modis: CGColor(srgbRed: 1.00, green: 0.63, blue: 0.20, alpha: alpha)  // amber
+        case .viirs: CGColor(srgbRed: 0.27, green: 0.76, blue: 1.00, alpha: alpha)  // sky blue
         }
     }
 
@@ -122,6 +122,8 @@ nonisolated final class DetectionRenderer: MKOverlayRenderer, @unchecked Sendabl
         // Passes: 0 = pixel footprints, 1 = soft glow (adds up where detections overlap),
         // 2 = MODIS markers, 3 = VIIRS markers. VIIRS goes last so its finer 375 m
         // detections are never hidden under the coarser MODIS ones.
+        // Each marker is a colored shape with a dark outline and a small white-hot center,
+        // so it stays visible on both bright desert and dark ocean imagery.
         for pass in 0..<4 {
             if pass == 0 && !showFootprints { continue }
             context.setBlendMode(pass == 1 ? .plusLighter : .normal)
@@ -143,19 +145,22 @@ nonisolated final class DetectionRenderer: MKOverlayRenderer, @unchecked Sendabl
                     context.addRect(rect)
                     context.drawPath(using: .fillStroke)
                 case 1:
-                    let g = r * 2.4
-                    context.setFillColor(SensorPalette.cgColor(it.sensor, alpha: 0.16))
-                    context.fillEllipse(in: CGRect(x: c.x - g, y: c.y - g, width: g * 2, height: g * 2))
+                    // Two stacked discs make a glow that is brighter toward the middle.
+                    for (scale, alpha) in [(2.6, 0.07), (1.7, 0.12)] {
+                        let g = r * scale
+                        context.setFillColor(SensorPalette.cgColor(it.sensor, alpha: alpha))
+                        context.fillEllipse(in: CGRect(x: c.x - g, y: c.y - g, width: g * 2, height: g * 2))
+                    }
                 default:
-                    context.setFillColor(SensorPalette.cgColor(it.sensor, alpha: 0.92))
-                    context.setStrokeColor(CGColor(gray: 0, alpha: 0.65))
+                    context.setFillColor(SensorPalette.cgColor(it.sensor, alpha: 0.95))
+                    context.setStrokeColor(CGColor(gray: 0, alpha: 0.7))
                     context.setLineWidth(CGFloat(1.0 * px))
                     if it.sensor == .modis {
                         // MODIS = circle
                         context.addEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
                     } else {
                         // VIIRS = diamond. A different shape as well as a different color, so the sensors can be told apart even without color vision.
-                        let d = r * 1.2
+                        let d = r * 1.15
                         context.move(to: CGPoint(x: c.x, y: c.y - d))
                         context.addLine(to: CGPoint(x: c.x + d, y: c.y))
                         context.addLine(to: CGPoint(x: c.x, y: c.y + d))
@@ -163,6 +168,9 @@ nonisolated final class DetectionRenderer: MKOverlayRenderer, @unchecked Sendabl
                         context.closePath()
                     }
                     context.drawPath(using: .fillStroke)
+                    let core = r * 0.36
+                    context.setFillColor(CGColor(gray: 1, alpha: 0.9))
+                    context.fillEllipse(in: CGRect(x: c.x - core, y: c.y - core, width: core * 2, height: core * 2))
                 }
             }
         }

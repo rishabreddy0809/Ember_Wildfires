@@ -66,6 +66,8 @@ struct DetectionMapView: NSViewRepresentable {
         private var detectionOverlay: DetectionOverlay?
         private var detectionKey: (Int, Set<Sensor>)?
         private var areaOverlay: MKPolygon?
+        /// A see-through dark layer over satellite imagery, so the detections are the brightest thing on the map.
+        private var dimOverlay: MKPolygon?
         private var areaBounds: GeoBounds?
         private var selectionAnnotation: SelectionAnnotation?
         private var style: MapStyleChoice?
@@ -128,6 +130,17 @@ struct DetectionMapView: NSViewRepresentable {
                 map.preferredConfiguration = config
             }
             map.appearance = NSAppearance(named: .darkAqua)
+
+            // Satellite imagery is bright, so dim it. The dim layer sits under the place labels and the detections.
+            if let old = dimOverlay { map.removeOverlay(old); dimOverlay = nil }
+            if choice == .satellite {
+                let w = MKMapRect.world
+                let corners = [MKMapPoint(x: w.minX, y: w.minY), MKMapPoint(x: w.maxX, y: w.minY),
+                               MKMapPoint(x: w.maxX, y: w.maxY), MKMapPoint(x: w.minX, y: w.maxY)]
+                let dim = MKPolygon(points: corners, count: corners.count)
+                map.insertOverlay(dim, at: 0, level: .aboveRoads)
+                dimOverlay = dim
+            }
         }
 
         // MARK: Click to select
@@ -145,9 +158,14 @@ struct DetectionMapView: NSViewRepresentable {
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let o = overlay as? DetectionOverlay { return DetectionRenderer(detectionOverlay: o) }
+            if let p = overlay as? MKPolygon, p === dimOverlay {
+                let r = MKPolygonRenderer(polygon: p)
+                r.fillColor = NSColor(srgbRed: 0.01, green: 0.02, blue: 0.05, alpha: 0.38)
+                return r
+            }
             if let p = overlay as? MKPolygon {
                 let r = MKPolygonRenderer(polygon: p)
-                r.strokeColor = NSColor(Theme.ember).withAlphaComponent(0.85)
+                r.strokeColor = NSColor(Theme.ember).withAlphaComponent(0.9)
                 r.fillColor = NSColor(Theme.ember).withAlphaComponent(0.035)
                 r.lineWidth = 1.5
                 r.lineDashPattern = [6, 5]

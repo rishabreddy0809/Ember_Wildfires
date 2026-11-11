@@ -20,22 +20,29 @@ struct MenuBarPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("EMBER").font(.system(size: 13, weight: .black).width(.expanded)).tracking(2)
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable().interpolation(.high)
+                    .frame(width: 22, height: 22)
+                    .accessibilityHidden(true)
+                Text("Ember").font(.system(size: 14, weight: .bold))
                 Spacer()
-                Text((store.loadedQuery ?? store.query).areaName).font(.caption).foregroundStyle(.secondary)
+                Text((store.loadedQuery ?? store.query).areaName).font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textSecondary)
             }
             HStack(spacing: 10) {
                 ForEach(Sensor.allCases) { s in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 5) {
                             SensorGlyph(sensor: s, size: 8)
-                            Text(s.rawValue).font(.hudLabel).tracking(1)
+                            Text(s.rawValue).font(.wide(10)).tracking(1)
                         }
                         Text(store.count(s).grouped).font(.hudNumber(20)).foregroundStyle(Theme.color(s))
+                            .contentTransition(.numericText())
+                        Text(s.nominalResolution).font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.textSecondary)
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Theme.color(s).opacity(0.1), in: .rect(cornerRadius: 10))
+                    .background(Theme.color(s).opacity(0.12), in: .rect(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.color(s).opacity(0.3)))
                 }
             }
             Group {
@@ -47,8 +54,8 @@ struct MenuBarPanel: View {
                     Label("Updated \(u.formatted(.relative(presentation: .named)))\(store.isShowingCachedData ? " (cached)" : "")", systemImage: "clock")
                 }
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            .font(.system(size: 11.5))
+            .foregroundStyle(Theme.textSecondary)
 
             HStack {
                 Button("Refresh", systemImage: "arrow.clockwise") { store.refresh() }
@@ -65,6 +72,7 @@ struct MenuBarPanel: View {
         }
         .padding(14)
         .frame(width: 280)
+        .preferredColorScheme(.dark)
         .task { await store.start() }
     }
 }

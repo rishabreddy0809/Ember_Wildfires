@@ -1,6 +1,8 @@
 //  MainWindow.swift
-//  The main window: sidebar on the left, a full-bleed map, and an inspector on the right.
-//  The toolbar holds the controls you use most. Most of them also have keyboard shortcuts (see AppCommands.swift).
+//  The main window: sidebar on the left, a full-bleed map, and an inspector column on the right.
+//  Glass panels float over the map: the legend (top right) and the overpass timeline (bottom).
+//  The toolbar shows what data is on screen and holds the controls you use most.
+//  Most of them also have keyboard shortcuts (see AppCommands.swift).
 
 import SwiftUI
 import CoreLocation
@@ -15,10 +17,22 @@ struct MainWindow: View {
         NavigationSplitView {
             SidebarView(store: store)
         } detail: {
-            mapArea
-        }
-        .inspector(isPresented: $store.showInspector) {
-            InspectorView(store: store)
+            // The inspector is a plain column beside the map instead of SwiftUI's `.inspector`.
+            // On macOS 27, `.inspector` made the window's content twice as tall as the window
+            // when it opened, which pushed the legend, timeline, and status footer off screen.
+            HStack(spacing: 0) {
+                mapArea
+                if store.showInspector {
+                    InspectorView(store: store)
+                        .frame(width: 340)
+                        .background(Theme.background.ignoresSafeArea())
+                        .overlay(alignment: .leading) {
+                            Rectangle().fill(Theme.hairline).frame(width: 1).ignoresSafeArea()
+                        }
+                        .transition(.move(edge: .trailing))
+                }
+            }
+            .animation(.snappy(duration: 0.28), value: store.showInspector)
         }
         .toolbar { toolbar }
         .navigationTitle("")
@@ -39,56 +53,41 @@ struct MainWindow: View {
     // MARK: Map + floating overlays
 
     private var mapArea: some View {
-        ZStack {
-            DetectionMapView(store: store) { cursor = $0 }
-                .ignoresSafeArea()
-
-            // A soft shadow around the edges so the floating panels stay readable on bright imagery
-            RadialGradient(colors: [.clear, .black.opacity(0.35)], center: .center, startRadius: 300, endRadius: 1100)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-
-            VStack {
-                HStack(alignment: .top) {
-                    LegendHUD(store: store)
-                    Spacer()
-                }
-                Spacer()
-                HStack(alignment: .bottom) {
-                    ReadoutHUD(store: store, cursor: cursor)
-                    Spacer()
-                }
+        DetectionMapView(store: store) { cursor = $0 }
+            .ignoresSafeArea()
+            .overlay {
+                // A soft shadow around the edges so the floating panels stay readable on bright imagery
+                RadialGradient(colors: [.clear, .black.opacity(0.4)], center: .center, startRadius: 320, endRadius: 1100)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
             }
-            .padding(16)
-
-            VStack {
-                if store.isLoading {
-                    LoadingPill(status: store.loadingStatus) { store.cancelRefresh() }
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                } else if store.isShowingCachedData, store.lastUpdated != nil {
-                    cachedPill.transition(.opacity)
-                }
-                Spacer()
-                banner
-                    .padding(.bottom, 76)
+            .overlay(alignment: .topTrailing) {
+                // Top right, because the map draws its distance scale in the top-left corner.
+                LegendHUD(store: store).padding(16)
             }
-            .padding(.top, 14)
-            .padding(.horizontal, 16)
-            .animation(.spring(duration: 0.35), value: store.isLoading)
-            .animation(.spring(duration: 0.35), value: store.error)
-        }
-        .onExitCommand { store.clearSelection() }   // Esc clears the selection
-    }
-
-    private var cachedPill: some View {
-        Label {
-            Text("Offline copy · \(store.lastUpdated!.formatted(.relative(presentation: .named)))")
-        } icon: {
-            Image(systemName: "externaldrive.fill.badge.timemachine")
-        }
-        .font(.system(size: 11, weight: .semibold))
-        .padding(.horizontal, 12).padding(.vertical, 6)
-        .glassEffect(.regular.tint(Theme.modis.opacity(0.15)), in: .capsule)
+            .overlay(alignment: .top) {
+                Group {
+                    if store.isLoading {
+                        LoadingPill(status: store.loadingStatus) { store.cancelRefresh() }
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    } else if store.isShowingCachedData, let updated = store.lastUpdated {
+                        CachedPill(updated: updated).transition(.opacity)
+                    }
+                }
+                .padding(.top, 16)
+                .animation(.spring(duration: 0.35), value: store.isLoading)
+            }
+            .overlay(alignment: .bottom) {
+                VStack(spacing: 12) {
+                    banner
+                    TimelineDock(store: store, cursor: cursor)
+                }
+                // Leave room on the right for the map's zoom buttons.
+                .padding(.leading, 16).padding(.trailing, 64).padding(.bottom, 16)
+                .animation(.spring(duration: 0.35), value: store.error)
+                .animation(.spring(duration: 0.35), value: store.emptyResultNotice)
+            }
+            .onExitCommand { store.clearSelection() }   // Esc clears the selection
     }
 
     @ViewBuilder private var banner: some View {
@@ -116,15 +115,18 @@ struct MainWindow: View {
     // MARK: Toolbar
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .principal) {
-            ForEach(Sensor.allCases) { s in
-                Toggle(isOn: Binding(get: { store.visibleSensors.contains(s) }, set: { _ in withAnimation(.snappy) { store.toggle(s) } })) {
-                    Label { Text(s.rawValue) } icon: { SensorGlyph(sensor: s, size: 9, glow: false) }
-                        .labelStyle(.titleAndIcon)
-                }
-                .toggleStyle(.button)
-                .help("Show/hide \(s.rawValue) (\(s == .modis ? "⌘1" : "⌘2"))")
+        // The area and dates of the data on the map, where a window title would normally go.
+        ToolbarItem(placement: .principal) {
+            let q = store.loadedQuery ?? store.query
+            HStack(spacing: 8) {
+                Text(q.areaName).font(.system(size: 13, weight: .semibold))
+                Text(dateRange(q))
+                    .font(.mono(11))
+                    .foregroundStyle(Theme.textSecondary)
             }
+            .padding(.horizontal, 10)
+            .lineLimit(1)
+            .accessibilityElement(children: .combine)
         }
 
         ToolbarItem(placement: .primaryAction) {
@@ -150,5 +152,11 @@ struct MainWindow: View {
             Button { store.showInspector.toggle() } label: { Label("Inspector", systemImage: "sidebar.trailing") }
                 .help("Show/hide the detection inspector (⌥⌘I)")
         }
+    }
+
+    /// "2026-11-07 → 2026-11-08 UTC", or a single date when the range is one day.
+    private func dateRange(_ q: FireQuery) -> String {
+        let start = FireQuery.firmsDateString(q.startDate), end = FireQuery.firmsDateString(q.endDate)
+        return (start == end ? start : "\(start) → \(end)") + " UTC"
     }
 }

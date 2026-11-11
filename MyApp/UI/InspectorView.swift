@@ -13,7 +13,7 @@ struct InspectorView: View {
         Group {
             if let d = store.selected {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 12) {
                         if store.selectionStack.count > 1 { StackPager(store: store) }
                         Hero(d: d)
                         Measurements(d: d)
@@ -21,7 +21,7 @@ struct InspectorView: View {
                         RawColumns(d: d)
                         Actions(d: d, store: store)
                     }
-                    .padding(14)
+                    .padding(16)
                 }
                 .id(d.id)
                 .transition(.opacity)
@@ -29,7 +29,6 @@ struct InspectorView: View {
                 EmptyInspector()
             }
         }
-        .inspectorColumnWidth(min: 300, ideal: 340, max: 440)
         .animation(.snappy(duration: 0.2), value: store.selected?.id)
     }
 }
@@ -40,12 +39,15 @@ private struct EmptyInspector: View {
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
-                Circle().strokeBorder(Theme.hairline, style: StrokeStyle(lineWidth: 1, dash: [4, 4])).frame(width: 84, height: 84)
-                Image(systemName: "scope").font(.system(size: 30, weight: .light)).foregroundStyle(.secondary)
+                Circle().strokeBorder(Color.white.opacity(0.16), style: StrokeStyle(lineWidth: 1, dash: [4, 4])).frame(width: 88, height: 88)
+                Circle().strokeBorder(Theme.hairline).frame(width: 56, height: 56)
+                Image(systemName: "scope").font(.system(size: 26, weight: .light)).foregroundStyle(Theme.ember)
             }
-            Text("No detection selected").font(.headline)
-            Text("Click any point on the map to see all of its FIRMS data. When detections overlap, you can step through each one.")
-                .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            .padding(.bottom, 4)
+            Text("No detection selected").font(.system(size: 14, weight: .semibold))
+            Text("Click any marker on the map to see everything FIRMS reported for it. When markers overlap, you can step through each one.")
+                .font(.system(size: 12)).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(30)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -59,6 +61,7 @@ private struct StackPager: View {
     var body: some View {
         HStack(spacing: 8) {
             Button { store.stepSelection(-1) } label: { Image(systemName: "chevron.left") }
+                .accessibilityLabel("Previous detection")
                 .keyboardShortcut("[", modifiers: [])
             VStack(alignment: .leading, spacing: 4) {
                 HUDLabel("\(store.selectionIndex + 1) of \(store.selectionStack.count) under cursor")
@@ -72,11 +75,12 @@ private struct StackPager: View {
             }
             Spacer()
             Button { store.stepSelection(1) } label: { Image(systemName: "chevron.right") }
+                .accessibilityLabel("Next detection")
                 .keyboardShortcut("]", modifiers: [])
         }
         .buttonStyle(.borderless)
         .padding(10)
-        .background(Theme.panel, in: .rect(cornerRadius: 10))
+        .card()
         .help("Overlapping detections are kept separate. Use [ and ] to step through them.")
     }
 }
@@ -85,49 +89,64 @@ private struct StackPager: View {
 
 private struct Hero: View {
     let d: FireDetection
+
+    /// "Nov 8, 2026 17:34 UTC", on a 24-hour clock to match FIRMS's acq_time.
+    private static func utcString(_ t: Date) -> String {
+        let day = t.formatted(Date.FormatStyle(timeZone: TimeZone(identifier: "UTC")!).month(.abbreviated).day().year())
+        let c = FireQuery.utc.dateComponents([.hour, .minute], from: t)
+        return String(format: "%@ %02d:%02d UTC", day, c.hour ?? 0, c.minute ?? 0)
+    }
+
     var body: some View {
         let c = Theme.color(d.sensor)
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 SensorGlyph(sensor: d.sensor, size: 14)
                 Text(d.sensor.rawValue)
-                    .font(.system(size: 13, weight: .black).width(.expanded)).tracking(2)
+                    .font(.wide(13, .black)).tracking(2)
                     .foregroundStyle(c)
                 Text(d.satelliteName)
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 7).padding(.vertical, 2)
-                    .background(c.opacity(0.15), in: .capsule)
+                    .background(c.opacity(0.16), in: .capsule)
                 Spacer()
                 Label(d.dayNight.label, systemImage: d.dayNight == .night ? "moon.stars.fill" : "sun.max.fill")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(d.dayNight == .night ? Color.indigo : Color.yellow)
+                    .foregroundStyle(d.dayNight == .night ? Color(red: 0.66, green: 0.68, blue: 1.0) : Color(red: 1.0, green: 0.85, blue: 0.35))
             }
+
+            HUDLabel("Fire radiative power")
+                .padding(.top, 4)
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(d.frp.map { String(format: $0 >= 100 ? "%.0f" : "%.2f", $0) } ?? "—")
-                    .font(.hudNumber(40))
+                    .font(.hudNumber(42))
                     .foregroundStyle(LinearGradient(colors: [.white, c], startPoint: .top, endPoint: .bottom))
-                Text("MW").font(.system(size: 13, weight: .bold).width(.expanded)).foregroundStyle(.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                Text("MW").font(.wide(13, .bold)).foregroundStyle(Theme.textSecondary)
                 Spacer()
             }
-            HUDLabel("Fire radiative power")
+            .padding(.top, -6)
             FRPMeter(frp: d.frp, color: c)
+
+            SectionRule().padding(.vertical, 2)
 
             if let t = d.acquiredAt {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(t.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened, timeZone: TimeZone(identifier: "UTC")!)) + " UTC")
-                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    Text(Self.utcString(t))
+                        .font(.mono(13, .semibold))
+                        .textSelection(.enabled)
                     Text("\(t.formatted(date: .omitted, time: .shortened)) local · \(t.formatted(.relative(presentation: .named)))")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.system(size: 11.5)).foregroundStyle(Theme.textSecondary)
                 }
             }
         }
         .padding(14)
         .background {
             RoundedRectangle(cornerRadius: 14)
-                .fill(LinearGradient(colors: [c.opacity(0.22), c.opacity(0.02)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: [c.opacity(0.22), c.opacity(0.03)], startPoint: .topLeading, endPoint: .bottomTrailing))
         }
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(c.opacity(0.35)))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(c.opacity(0.38)))
     }
 }
 
@@ -153,11 +172,12 @@ private struct FRPMeter: View {
                     Text(t).frame(maxWidth: .infinity, alignment: t == "0.1" ? .leading : (t == "10k" ? .trailing : .center))
                 }
             }
-            .font(.system(size: 8, design: .monospaced))
-            .foregroundStyle(.tertiary)
-            .offset(y: 13)
+            .font(.mono(8.5))
+            .foregroundStyle(Theme.textTertiary)
+            .offset(y: 14)
         }
-        .padding(.bottom, 12)
+        .padding(.bottom, 13)
+        .accessibilityHidden(true)
     }
 }
 
@@ -183,21 +203,17 @@ private struct BrightnessCard: View {
             HUDLabel(label)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(kelvin.map { String(format: "%.1f", $0) } ?? "—").font(.hudNumber(18))
-                Text("K").font(.caption.bold()).foregroundStyle(.secondary)
+                Text("K").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.textSecondary)
             }
             // A thermometer bar from 250 K to 500 K
-            let f = kelvin.map { min(1, max(0, ($0 - 250) / 250)) } ?? 0
-            GeometryReader { g in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.07))
-                    Capsule().fill(Theme.heat).frame(width: max(3, g.size.width * f))
-                }
-            }.frame(height: 3)
-            Text(hint).font(.system(size: 9)).foregroundStyle(.tertiary)
+            MeterBar(fraction: kelvin.map { ($0 - 250) / 250 } ?? 0,
+                     fill: LinearGradient(colors: [Theme.emberHot, Theme.ember], startPoint: .leading, endPoint: .trailing),
+                     height: 3)
+            Text(hint).font(.system(size: 10)).foregroundStyle(Theme.textTertiary)
         }
-        .padding(10)
+        .padding(11)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.panel, in: .rect(cornerRadius: 10))
+        .card()
     }
 }
 
@@ -210,8 +226,8 @@ private struct ConfidenceCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HUDLabel("Confidence")
                 Text(confidence.displayText).font(.hudNumber(18))
-                Text(sensor == .modis ? "MODIS: 0–100 %" : "VIIRS: low · nominal · high")
-                    .font(.system(size: 9)).foregroundStyle(.tertiary)
+                Text(sensor == .modis ? "MODIS reports 0–100%" : "VIIRS reports low · nominal · high")
+                    .font(.system(size: 10)).foregroundStyle(Theme.textTertiary)
             }
             Spacer()
             switch confidence {
@@ -233,8 +249,8 @@ private struct ConfidenceCard: View {
                 EmptyView()
             }
         }
-        .padding(10)
-        .background(Theme.panel, in: .rect(cornerRadius: 10))
+        .padding(11)
+        .card()
     }
 }
 
@@ -282,18 +298,18 @@ private struct RawColumns: View {
                 VStack(spacing: 0) {
                     ForEach(Array(d.allColumns.enumerated()), id: \.offset) { i, col in
                         HStack {
-                            Text(col.name).foregroundStyle(.secondary)
+                            Text(col.name).foregroundStyle(Theme.textSecondary)
                             Spacer()
                             Text(col.value.isEmpty ? "∅" : col.value).textSelection(.enabled)
                         }
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.mono(11, .regular))
                         .padding(.vertical, 4).padding(.horizontal, 6)
-                        .background(i.isMultiple(of: 2) ? Color.white.opacity(0.03) : .clear)
+                        .background(i.isMultiple(of: 2) ? Color.white.opacity(0.035) : .clear, in: .rect(cornerRadius: 4))
                     }
                 }
                 .padding(.top, 4)
             } label: {
-                Text("Raw values").font(.caption).foregroundStyle(.secondary)
+                Text("Raw values, unchanged").font(.system(size: 11.5)).foregroundStyle(Theme.textSecondary)
             }
         }
     }
@@ -303,17 +319,17 @@ private struct Actions: View {
     let d: FireDetection
     let store: FireStore
     var body: some View {
-        HStack {
-            Button("Center", systemImage: "location.viewfinder") { store.focus(on: d) }
-            Button("Copy Coordinates", systemImage: "doc.on.doc") {
-                copy(String(format: "%.5f, %.5f", d.latitude, d.longitude))
-            }
-            Button("Copy Row", systemImage: "tablecells") {
+        HStack(spacing: 6) {
+            Button { store.focus(on: d) } label: { Label("Center", systemImage: "location.viewfinder") }
+                .help("Center the map on this detection")
+            Button { copy(String(format: "%.5f, %.5f", d.latitude, d.longitude)) } label: { Label("Copy Coords", systemImage: "doc.on.doc") }
+                .help("Copy latitude and longitude")
+            Button {
                 copy(d.allColumns.map(\.name).joined(separator: ",") + "\n" + d.allColumns.map(\.value).joined(separator: ","))
-            }
+            } label: { Label("Copy Row", systemImage: "tablecells") }
+                .help("Copy this detection as a CSV row with its header")
         }
-        .controlSize(.small)
-        .labelStyle(.titleAndIcon)
+        .buttonStyle(QuietButtonStyle())
     }
 
     private func copy(_ s: String) {
