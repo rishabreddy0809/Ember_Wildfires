@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ember: Every wildfire signal from orbit, in one view</title>
-  <meta name="description" content="Ember turns near-real-time NASA FIRMS satellite detections from MODIS and VIIRS into one clear map, and is learning to tell real wildfires from false alarms. A NASA Space Apps Challenge project.">
-  <meta property="og:title" content="Ember: Every wildfire signal from orbit, in one view">
-  <meta property="og:description" content="136,676 satellite fire detections in a single day. Ember shows them all, and sorts real wildfires from false alarms. Built with NASA FIRMS, MODIS and VIIRS data.">
+  <title>Ember: Finding the real wildfires in NASA satellite data</title>
+  <meta name="description" content="In one day, NASA satellites flag over 100,000 hot spots on Earth. Ember combines MODIS and VIIRS detections from NASA FIRMS and uses machine learning to sort real wildfires from false alarms. A NASA Space Apps Challenge project.">
+  <meta property="og:title" content="Ember: Finding the real wildfires in NASA satellite data">
+  <meta property="og:description" content="136,676 satellite hot spots in a single day. Which ones are real wildfires? Ember uses NASA FIRMS data and a Random Forest to find out.">
   <meta name="theme-color" content="#06070a">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,13 +18,13 @@
     { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
   </script>
 </head>
-<body class="loading">
+<body class="loading story-start">
 
 <a class="skip" href="#problem">Skip to content</a>
 
 <div class="loader" id="loader" aria-hidden="true">
   <div class="loader-mark"><span></span></div>
-  <p>Downloading 136,676 fires from orbit…</p>
+  <p>Downloading one day of fire detections from orbit…</p>
 </div>
 
 <!-- ============ NAVIGATION ============ -->
@@ -33,25 +33,26 @@
   <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Open menu"><span></span><span></span></button>
   <nav id="nav-links">
     <a href="#problem">Problem</a>
-    <a href="#demo">Live demo</a>
     <a href="#how">How it works</a>
+    <a href="#demo">Demo</a>
     <a href="#data">NASA data</a>
-    <a href="#science">Science</a>
     <a href="#team">Team</a>
-    <a class="nav-cta" href="#demo">Try Ember</a>
+    <a class="nav-cta" href="#demo">See the demo</a>
   </nav>
 </header>
 
 <main id="top">
 
 <!-- =====================================================
-     HERO + STORY: a 3D globe stays pinned while these panels scroll.
+     ACT 1 + 2 · HOOK AND STORY
+     A 3D globe stays pinned while these panels scroll.
      Each .step moves the camera (see js/globe.js).
      ===================================================== -->
 <section class="story" id="story">
   <div class="stage">
     <canvas id="globe" aria-hidden="true"></canvas>
-    <div class="stage-shade" aria-hidden="true"></div>
+    <div class="stage-shade stage-shade-hero" aria-hidden="true"></div>
+    <div class="stage-shade stage-shade-side" aria-hidden="true"></div>
     <div class="hud" aria-hidden="true">
       <p class="hud-live"><i></i>Real NASA FIRMS data</p>
       <div class="hud-row"><span><i class="g modis"></i>MODIS</span><b id="hud-modis">22,601</b></div>
@@ -59,68 +60,83 @@
       <p class="hud-foot" id="hud-date">24-hour global detections</p>
     </div>
     <div class="progress" aria-hidden="true"><i id="story-progress"></i></div>
-    <p class="scroll-cue" id="scroll-cue" aria-hidden="true"><span>Scroll to fly around the planet</span><i></i></p>
+    <p class="scroll-cue" id="scroll-cue" aria-hidden="true"><span>Scroll to fly in</span><i></i></p>
   </div>
 
   <div class="steps-wrap">
+    <!-- The hook: a counter runs up while the fires switch on across the planet. -->
     <article class="step step-hero" data-step="0">
-      <!-- ✏️ EDIT THIS: add your challenge name / team name / location if you want, e.g. "NASA Space Apps Challenge · Boston" -->
+      <!-- ✏️ EDIT THIS: add your challenge name / team name / location, e.g. "NASA Space Apps Challenge · Boston" -->
       <p class="eyebrow"><span class="pulse"></span>NASA Space Apps Challenge</p>
-      <h1 class="title" id="title">Every <em class="hl hl-fire">wildfire</em> signal from orbit. One clear view.</h1>
-      <p class="dek">Satellites flag <b>over 100,000 hot spots</b> on Earth every day. Ember pulls them straight from NASA FIRMS, puts every <span class="t-modis">MODIS</span> and <span class="t-viirs">VIIRS</span> detection on one map, and is learning to separate real wildfires from false alarms.</p>
+      <h1 class="hook" id="hook">
+        <span class="hook-pre">In one day, NASA satellites flagged</span>
+        <span class="hook-num" id="hook-num" data-total="136676">136,676</span>
+        <span class="hook-post">hot spots on Earth. <em>Which ones are real wildfires?</em></span>
+      </h1>
+      <p class="dek"><b>Ember</b> combines every <span class="t-modis">MODIS</span> and <span class="t-viirs">VIIRS</span> detection from NASA FIRMS and uses machine learning to sort real wildfires from false alarms.</p>
       <div class="cta-row">
-        <a class="btn-cta" href="#demo">Try the live demo <span aria-hidden="true">→</span></a>
-        <a class="btn-ghost" href="#problem">Why it matters</a>
+        <a class="btn-cta" href="#demo">See the demo <span aria-hidden="true">→</span></a>
+        <a class="btn-ghost" href="#problem">Read the 30-second version</a>
       </div>
-      <dl class="hero-stats">
-        <div><dt>Detections in 24 h</dt><dd><span id="hero-total">136,676</span></dd></div>
-        <div><dt>Satellite sensors</dt><dd>2</dd></div>
-        <div><dt>Finest pixel</dt><dd>375<small>&thinsp;m</small></dd></div>
-      </dl>
     </article>
 
     <article class="step" data-step="1">
-      <p class="kicker">01 · The planet is burning</p>
-      <h2>Every point on this globe is a <em class="hl hl-fire">real fire detection</em></h2>
-      <p>That’s all <b id="s1-total">136,676</b> detections NASA’s FIRMS system recorded from MODIS and NOAA-20 VIIRS on <span id="s1-dates">Nov 7–8, 2026</span>. Most are in Africa, where seasonal burning is common.</p>
+      <p class="kicker">01 · The signal</p>
+      <h2>Every point on this globe is a <em class="hl hl-fire">real detection</em></h2>
+      <p>These are all <b id="s1-total">136,676</b> detections NASA’s FIRMS system recorded from MODIS and NOAA-20 VIIRS on <span id="s1-dates">Nov 7–8, 2026</span>. Most are in Africa, where seasonal burning is common.</p>
       <p>Satellites don’t see flames. They spot <b>thermal anomalies</b>: pixels much hotter than the ground around them. Bigger points released more fire radiative power.</p>
     </article>
 
     <article class="step" data-step="2">
-      <p class="kicker">02 · Two eyes in the sky</p>
+      <p class="kicker">02 · Two sensors</p>
       <h2><em class="hl hl-modis">MODIS</em> and <em class="hl hl-viirs">VIIRS</em> see the ground differently</h2>
       <p><span class="t-modis">MODIS</span> rides on Terra and Aqua with pixels about 1&nbsp;km wide. <span class="t-viirs">VIIRS</span> rides on Suomi NPP, NOAA-20 and NOAA-21 with pixels about 375&nbsp;m wide <a class="cite" href="#ref-giglio">(Giglio et al., 2016;</a> <a class="cite" href="#ref-schroeder">Schroeder et al., 2014)</a>.</p>
-      <p>Each one scans a wide strip, called a swath, as it orbits. (Orbits drawn here are illustrations.)</p>
+      <p>Each one catches fires the other misses, so Ember uses both. (Orbits drawn here are illustrations.)</p>
     </article>
 
     <article class="step" data-step="3">
-      <p class="kicker">03 · The messy part</p>
+      <p class="kicker">03 · The mess</p>
       <h2>One fire becomes <em class="hl hl-fire">many detections</em></h2>
-      <p>Zoom into California on the same day: <b id="s3-ca">133</b> detections. Stack both sensors on one map and a single fire turns into a pile of overlapping points.</p>
+      <p>Zoom into California on the same day: <b id="s3-ca">133</b> detections. Put both sensors on one map and a single fire turns into a pile of overlapping points.</p>
       <p>Near the edge of a scan, one MODIS pixel can cover about 9.67× the ground it covers straight below <a class="cite" href="#ref-giglio">(Giglio et al., 2016)</a> and overlap 1 to 115 VIIRS pixels <a class="cite" href="#ref-zheng">(Zheng et al., 2026)</a>.</p>
     </article>
 
     <article class="step" data-step="4">
       <p class="kicker">04 · The question</p>
-      <h2>Which ones are <em class="hl hl-fire">real wildfires</em>?</h2>
-      <p>Hot bare ground, factories, and sun glint all trigger false alarms. Ember makes the raw signal visible, then puts two methods head to head to sort real fires from noise.</p>
-      <p><a class="btn-cta btn-sm" href="#problem">See the problem in numbers <span aria-hidden="true">↓</span></a></p>
+      <h2>And some of them <em class="hl hl-fire">aren’t fires at all</em></h2>
+      <p>Hot bare ground, factories and sun glint all set off false alarms. Someone responding to a fire has to work out which points matter.</p>
+      <p>Ember gives that job to a machine-learning model.</p>
+      <p><a class="btn-cta btn-sm" href="#problem">See how <span aria-hidden="true">↓</span></a></p>
     </article>
   </div>
 </section>
 
-<!-- ============ PROBLEM ============ -->
+<!-- ============ ACT 2 · THE PROBLEM, IN SHORT ============ -->
 <section class="block" id="problem">
   <div class="block-head">
-    <p class="kicker">The problem</p>
-    <h2>Satellites see more fire than ever. Making sense of it is the hard part.</h2>
-    <p class="lead">Each sensor misses fires the other catches, so combining them makes sense. But combining them also piles up duplicates and false alarms that responders have to wade through.</p>
+    <p class="kicker">The 30-second version</p>
+    <h2>Satellites see more fire than ever. Knowing which signals are real is the hard part.</h2>
+  </div>
+
+  <div class="brief">
+    <article class="brief-card reveal">
+      <p class="brief-tag">The problem</p>
+      <p>Two NASA sensor families report fires. Combining them catches more, but it also stacks up duplicates and false alarms.</p>
+    </article>
+    <article class="brief-card brief-main reveal">
+      <p class="brief-tag">Our answer</p>
+      <p><b>Ember</b> puts MODIS and VIIRS detections on one map, exactly as reported, and uses a Random Forest to label each one as a real fire or a false alarm.</p>
+    </article>
+    <article class="brief-card reveal">
+      <p class="brief-tag">NASA data</p>
+      <p>Live and archived active-fire detections from the NASA FIRMS API: MODIS on Terra and Aqua, and VIIRS on NOAA-20.</p>
+    </article>
   </div>
 
   <div class="stat-grid">
     <article class="stat-card reveal">
       <p class="stat-num"><span data-count="136676">0</span></p>
-      <p class="stat-label">fire detections worldwide in a single 24-hour NASA FIRMS file</p>
+      <p class="stat-label">detections worldwide in a single 24-hour NASA FIRMS file</p>
       <p class="stat-src">Source: NASA FIRMS, Nov 7–8, 2026</p>
     </article>
     <article class="stat-card reveal">
@@ -147,12 +163,108 @@
   </figure>
 </section>
 
-<!-- ============ SOLUTION + LIVE DEMO ============ -->
+<!-- ============ ACT 2 · HOW IT WORKS ============ -->
+<section class="block" id="how">
+  <div class="block-head">
+    <p class="kicker">How it works</p>
+    <h2>From orbit to answer in five steps.</h2>
+  </div>
+
+  <ol class="pipeline">
+    <li class="reveal"><span class="p-num">1</span><h3>Fetch</h3><p>Request MODIS and VIIRS detections for any area and up to 10 days from the FIRMS API.</p></li>
+    <li class="reveal"><span class="p-num">2</span><h3>Parse</h3><p>Turn each CSV row into a typed detection with location, time, brightness and fire power.</p></li>
+    <li class="reveal"><span class="p-num">3</span><h3>Harmonize</h3><p>Put both sensors on one timeline and one map, with their different confidence scales kept intact.</p></li>
+    <li class="reveal"><span class="p-num">4</span><h3>Classify</h3><p>A Random Forest labels each detection as a real fire or a false alarm.</p></li>
+    <li class="reveal"><span class="p-num">5</span><h3>Show &amp; share</h3><p>Draw it on the map, inspect it, and export it for analysis.</p></li>
+  </ol>
+
+  <!-- The model -->
+  <div class="dive">
+    <div class="dive-text">
+      <p class="kicker">The model</p>
+      <h3>A Random Forest lets many decision trees vote</h3>
+      <p>Each tree asks yes/no questions about a detection: its brightness, fire power, confidence, day or night, sensor, and how many other detections are nearby. Then the trees vote <a class="cite" href="#ref-breiman">(Breiman, 2001)</a>.</p>
+      <p>Because it weighs several clues at once, it can flag a lone hot pixel over a factory roof without throwing away a small real fire.</p>
+    </div>
+    <figure class="fig rf" id="rf">
+      <div class="rf-box">
+        <p class="card-title">One detection</p>
+        <dl class="rf-card" id="rf-card" aria-live="polite"></dl>
+        <p class="card-title rf-sub">Five trees, one vote each</p>
+        <div class="rf-trees" id="rf-trees"></div>
+        <div class="rf-tally" aria-hidden="true"><i id="rf-tally"></i><span>3 votes = fire</span></div>
+        <p class="rf-verdict" id="rf-verdict"></p>
+        <div class="rf-actions">
+          <button class="btn" id="rf-run">Let the trees vote</button>
+          <button class="btn btn-quiet" id="rf-new">New detection</button>
+        </div>
+      </div>
+      <figcaption>A teaching example: five toy trees with made-up rules and a made-up detection. The real model learns its questions from labeled data with scikit-learn <a class="cite" href="#ref-sklearn">(scikit-learn developers, n.d.)</a>.</figcaption>
+    </figure>
+  </div>
+
+  <!-- Why duplicates happen (3D) -->
+  <div class="dive dive-flip">
+    <div class="dive-text">
+      <p class="kicker">Why the data is messy</p>
+      <h3>Pixels stretch toward the edge of every scan</h3>
+      <p>A sensor sweeps side to side as the satellite moves forward. Straight below, pixels are small. Toward the edge, each MODIS pixel covers far more ground and neighboring rows start to overlap, so one fire is detected again and again. Drag the slider and watch.</p>
+    </div>
+    <figure class="fig" id="scan-viz">
+      <div class="plate">
+        <canvas id="scan-canvas" aria-label="3D illustration of a satellite scanning the ground. MODIS pixels become much larger toward the edge of the scan, while VIIRS pixels grow much less."></canvas>
+        <div class="plate-hud">
+          <div class="seg" role="group" aria-label="Which sensor to show">
+            <button data-show="both" class="on">Both</button><button data-show="modis">MODIS</button><button data-show="viirs">VIIRS</button>
+          </div>
+          <div class="readout"><span>MODIS pixel</span> <b id="scan-size">1.0 × 1.0 km</b> <span><b id="scan-area">1.00×</b> area</span></div>
+        </div>
+        <label class="plate-slider">
+          <span>Below satellite</span>
+          <input type="range" id="scan-slider" min="0" max="1000" value="0" aria-label="Position across the swath, from directly below the satellite to the edge">
+          <span>Edge of swath</span>
+        </label>
+      </div>
+      <figcaption>Drag to rotate. Orange = MODIS pixels, blue = VIIRS pixels. The edge MODIS pixel (≈4.8 × 2.0 km, ≈9.67× the area) follows <a class="cite" href="#ref-giglio">Giglio et al. (2016)</a>; VIIRS growth and swath distances are illustrative.</figcaption>
+    </figure>
+  </div>
+
+  <!-- How the model is tested -->
+  <div class="test card reveal">
+    <div>
+      <p class="kicker">How we test it</p>
+      <h3>Scored against fires that really happened</h3>
+      <p>The model trains on one fire season and is scored on a different one it has never seen, using mapped fire perimeters as the answer key.</p>
+      <!-- ✏️ ADD YOUR RESULTS HERE LATER: replace the status line below with your numbers or a chart image -->
+      <p class="status-pill"><span class="pulse"></span>Experiment in progress: results coming soon</p>
+    </div>
+    <ol class="mini-steps">
+      <li>MODIS + VIIRS detections, California, Jun–Nov 2020 and 2021</li>
+      <li>Answer key: CAL FIRE fire perimeters</li>
+      <li>Train on 2020, test on 2021 (unseen data)</li>
+      <li>Score <b>precision</b> (of everything flagged as fire, how much really was) and <b>recall</b> (of all real fires, how many were caught)</li>
+      <li>Compare with keeping every detection, unfiltered</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ ACT 3 · THE DEMO ============ -->
 <section class="block" id="demo">
   <div class="block-head">
-    <p class="kicker">Our solution</p>
-    <h2>Meet <span class="grad">Ember</span>: raw satellite fire data you can actually read.</h2>
-    <p class="lead">Ember is a native macOS app built with SwiftUI and MapKit. It downloads live and archived detections from the NASA FIRMS API and shows every single one, exactly as reported. No hidden clustering, no silent filtering.</p>
+    <p class="kicker">The demo</p>
+    <h2>Meet <span class="grad">Ember</span>.</h2>
+    <p class="lead">A native macOS app built with SwiftUI and MapKit. It downloads live and archived detections from the NASA FIRMS API and shows every single one, exactly as reported. No hidden clustering, no silent filtering.</p>
+  </div>
+
+  <figure class="shot reveal">
+    <img src="img/ember-app.jpg" width="2400" height="1401" loading="lazy" alt="The Ember app showing California. A sidebar compares 13 MODIS and 137 VIIRS detections, the map shows each detection as an orange circle or a blue diamond, and a timeline along the bottom shows detections per hour for each sensor.">
+    <figcaption>The Ember app with live NASA FIRMS data over California: MODIS and VIIRS compared side by side, every detection on the map, and detections per hour along the bottom.</figcaption>
+  </figure>
+
+  <div class="try-head">
+    <p class="kicker">Try it here</p>
+    <h3>The same real detections, in your browser</h3>
+    <p>Pick a region, switch sensors on and off, and click any detection to inspect it.</p>
   </div>
 
   <!-- Interactive preview: real detections from data/fires.bin, drawn by js/appmock.js -->
@@ -183,7 +295,7 @@
         <div id="app-inspect-body"><p class="app-empty">Nothing selected.<br>Click a point on the map.</p></div>
       </aside>
     </div>
-    <figcaption>Interactive preview using the same real FIRMS detections as the globe. The full Ember app adds a satellite basemap, date ranges up to 10 days, every FIRMS column per detection, and CSV export.</figcaption>
+    <figcaption>A browser preview using the same real FIRMS detections as the globe. The full Ember app adds a satellite basemap, date ranges up to 10 days, every FIRMS column per detection, and CSV export.</figcaption>
   </figure>
 
   <div class="feature-grid">
@@ -204,92 +316,9 @@
     </article>
     <article class="feature reveal">
       <span class="f-icon" aria-hidden="true">⇩</span>
-      <h3>Science-ready export</h3>
-      <p>One keystroke (<kbd>⌘E</kbd>) exports a combined, harmonized CSV that loads straight into Python and pandas.</p>
+      <h3>Ready for the model</h3>
+      <p>One keystroke (<kbd>⌘E</kbd>) exports a combined, harmonized CSV that loads straight into Python and scikit-learn.</p>
     </article>
-  </div>
-</section>
-
-<!-- ============ HOW IT WORKS ============ -->
-<section class="block" id="how">
-  <div class="block-head">
-    <p class="kicker">How it works</p>
-    <h2>From orbit to answer in five steps.</h2>
-  </div>
-
-  <ol class="pipeline">
-    <li class="reveal"><span class="p-num">1</span><h3>Fetch</h3><p>Request MODIS and VIIRS detections for any area and up to 10 days from the FIRMS API.</p></li>
-    <li class="reveal"><span class="p-num">2</span><h3>Parse</h3><p>Turn each CSV row into a typed detection with location, time, brightness and fire power.</p></li>
-    <li class="reveal"><span class="p-num">3</span><h3>Harmonize</h3><p>Put both sensors on one timeline and one map, with their different confidence scales kept intact.</p></li>
-    <li class="reveal"><span class="p-num">4</span><h3>Classify</h3><p>Label each detection as real fire or false alarm, with clustering or a Random Forest.</p></li>
-    <li class="reveal"><span class="p-num">5</span><h3>Show &amp; share</h3><p>Draw it on the map, inspect it, and export it for analysis.</p></li>
-  </ol>
-
-  <!-- Deep dive 1: pixel geometry (3D) -->
-  <div class="dive">
-    <div class="dive-text">
-      <p class="kicker">Deep dive · Why duplicates happen</p>
-      <h3>Pixels stretch toward the edge of every scan</h3>
-      <p>A sensor sweeps side to side as the satellite moves forward. Straight below, pixels are small. Toward the edge, each MODIS pixel covers far more ground and neighboring rows start to overlap, so one fire gets detected again and again. Drag the slider and watch.</p>
-    </div>
-    <figure class="fig" id="scan-viz">
-      <div class="plate">
-        <canvas id="scan-canvas" aria-label="3D illustration of a satellite scanning the ground. MODIS pixels become much larger toward the edge of the scan, while VIIRS pixels grow much less."></canvas>
-        <div class="plate-hud">
-          <div class="seg" role="group" aria-label="Which sensor to show">
-            <button data-show="both" class="on">Both</button><button data-show="modis">MODIS</button><button data-show="viirs">VIIRS</button>
-          </div>
-          <div class="readout"><span>MODIS pixel</span> <b id="scan-size">1.0 × 1.0 km</b> <span><b id="scan-area">1.00×</b> area</span></div>
-        </div>
-        <label class="plate-slider">
-          <span>Below satellite</span>
-          <input type="range" id="scan-slider" min="0" max="1000" value="0" aria-label="Position across the swath, from directly below the satellite to the edge">
-          <span>Edge of swath</span>
-        </label>
-      </div>
-      <figcaption>Drag to rotate. Orange = MODIS pixels, blue = VIIRS pixels. The edge MODIS pixel (≈4.8 × 2.0 km, ≈9.67× the area) follows <a class="cite" href="#ref-giglio">Giglio et al. (2016)</a>; VIIRS growth and swath distances are illustrative.</figcaption>
-    </figure>
-  </div>
-
-  <!-- Deep dive 2: DBSCAN space-time cube (3D) -->
-  <div class="dive dive-flip">
-    <div class="dive-text">
-      <p class="kicker">Method A · Clustering</p>
-      <h3>DBSCAN groups detections in space and time</h3>
-      <p>Real fires produce many detections close together. DBSCAN links detections within <b>1&nbsp;km</b> and <b>24&nbsp;hours</b>: groups become fires, loners become false alarms <a class="cite" href="#ref-ester">(Ester et al., 1996)</a>. Press <b>Run DBSCAN</b> and watch the weakness: a factory that’s hot every 12 hours looks like a fire too.</p>
-    </div>
-    <figure class="fig" id="cube-viz">
-      <div class="plate">
-        <canvas id="cube-canvas" aria-label="3D space-time cube. The flat directions are space and the vertical direction is time. Clustering groups nearby detections into fires and marks lone detections as false alarms."></canvas>
-        <div class="cube-labels" id="cube-labels" aria-hidden="true"></div>
-        <div class="plate-bar">
-          <button class="btn" id="cube-run">Run DBSCAN</button>
-          <button class="btn btn-quiet" id="cube-reset">Reset</button>
-        </div>
-      </div>
-      <figcaption>A space-time cube with example detections: location on the floor, time (0–72 h) going up.</figcaption>
-    </figure>
-  </div>
-
-  <!-- Deep dive 3: Random Forest -->
-  <div class="dive">
-    <div class="dive-text">
-      <p class="kicker">Method B · Machine learning</p>
-      <h3>A Random Forest lets hundreds of trees vote</h3>
-      <p>Each decision tree asks yes/no questions about a detection: its brightness, fire power, confidence, day or night, sensor, and how many neighbors it has. The trees vote <a class="cite" href="#ref-breiman">(Breiman, 2001)</a>. Because it looks at more than location, it can catch the false alarms clustering misses.</p>
-    </div>
-    <figure class="fig rf" id="rf">
-      <div class="rf-box">
-        <dl class="rf-card" id="rf-card" aria-live="polite"></dl>
-        <div class="rf-trees" id="rf-trees"></div>
-        <p class="rf-verdict" id="rf-verdict"></p>
-        <div class="rf-actions">
-          <button class="btn" id="rf-run">Let the trees vote</button>
-          <button class="btn btn-quiet" id="rf-new">New detection</button>
-        </div>
-      </div>
-      <figcaption>Five toy trees with made-up rules. The real model learns its questions from labeled data with scikit-learn <a class="cite" href="#ref-sklearn">(scikit-learn developers, n.d.)</a>.</figcaption>
-    </figure>
   </div>
 </section>
 
@@ -321,49 +350,6 @@
   </div>
 </section>
 
-<!-- ============ SCIENCE ============ -->
-<section class="block" id="science">
-  <div class="block-head">
-    <p class="kicker">The science</p>
-    <h2>Clustering vs. machine learning: which one finds the real fires?</h2>
-  </div>
-
-  <div class="science-grid">
-    <div class="sci-main">
-      <blockquote class="rq">Does a Random Forest model or a spatial-temporal clustering algorithm more accurately identify real wildfires from combined MODIS and VIIRS data, measured against known wildfire perimeters?</blockquote>
-      <p class="sci-hyp"><b>Hypothesis:</b> the Random Forest will score higher on precision and recall, because it can use extra clues about each detection to recognize false alarms that clustering would group as fires.</p>
-
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Approach</th><th>Uses</th><th>Strength</th><th>Weakness</th></tr></thead>
-          <tbody>
-            <tr><td><b>Clustering (DBSCAN)</b></td><td>Location and time</td><td>Finds fires of any shape</td><td>Repeatedly hot factories look like fires</td></tr>
-            <tr><td><b>Random Forest</b></td><td>Six features per detection</td><td>Combines many clues</td><td>Only as good as its labels</td></tr>
-            <tr><td><b>Control</b></td><td>Nothing</td><td>Simple baseline</td><td>Keeps every false alarm</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <aside class="sci-side">
-      <p class="card-title">Experiment design</p>
-      <ol class="mini-steps">
-        <li>MODIS + VIIRS detections, California, Jun–Nov 2020 and 2021</li>
-        <li>Ground truth: CAL FIRE fire perimeters</li>
-        <li>Train on 2020, test on 2021 (unseen data)</li>
-        <li>Score precision &amp; recall, 6 monthly trials</li>
-        <li>Compare methods with a paired t-test</li>
-      </ol>
-      <dl class="metric-defs">
-        <div><dt>Precision</dt><dd>Of everything flagged as fire, how much really was.</dd></div>
-        <div><dt>Recall</dt><dd>Of all real fires, how many were caught.</dd></div>
-      </dl>
-      <!-- ✏️ ADD YOUR RESULTS HERE LATER: replace the status line below with your numbers or a chart image -->
-      <p class="status-pill"><span class="pulse"></span>Experiment in progress: results coming soon</p>
-    </aside>
-  </div>
-</section>
-
 <!-- ============ ROADMAP ============ -->
 <section class="block" id="roadmap">
   <div class="block-head">
@@ -373,9 +359,9 @@
   <!-- ✏️ EDIT THIS: change the "Next" items to match your real plans -->
   <ol class="roadmap">
     <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Ember viewer</h3><p>macOS app that downloads, maps, inspects and exports every MODIS and VIIRS detection.</p></li>
-    <li class="now reveal"><span class="rm-tag">In progress</span><h3>Real-fire classifier</h3><p>Head-to-head test of DBSCAN and Random Forest against CAL FIRE perimeters.</p></li>
-    <li class="next reveal"><span class="rm-tag">Next</span><h3>Filter inside Ember</h3><p>Plug the winning method into Ember so the map can highlight likely real fires.</p></li>
-    <li class="next reveal"><span class="rm-tag">Next</span><h3>Beyond California</h3><p>Test the method in other fire-prone regions to see if it holds up worldwide.</p></li>
+    <li class="now reveal"><span class="rm-tag">In progress</span><h3>Real-fire classifier</h3><p>Training and testing the Random Forest against CAL FIRE perimeters.</p></li>
+    <li class="next reveal"><span class="rm-tag">Next</span><h3>Model inside Ember</h3><p>Run the trained model in the app so the map can highlight likely real fires.</p></li>
+    <li class="next reveal"><span class="rm-tag">Next</span><h3>Beyond California</h3><p>Test the model in other fire-prone regions to see if it holds up worldwide.</p></li>
   </ol>
 </section>
 
@@ -387,14 +373,14 @@
       <p class="kicker">Team</p>
       <!-- ✏️ EDIT THIS: add teammates, a team name, or a line about yourself -->
       <h2>Built by Rishab</h2>
-      <p>A high school student in Shrewsbury, Massachusetts, who builds tools to make satellite data easier to understand. Ember started as a way to see the raw fire data before testing any method on it.</p>
+      <p>A high school student in Shrewsbury, Massachusetts, who builds tools to make satellite data easier to understand. Ember started as a way to see the raw fire data before training a model on it.</p>
     </div>
   </div>
 
   <div class="final-cta reveal">
     <h2>Every fire, seen. Every signal, sorted.</h2>
     <div class="cta-row">
-      <a class="btn-cta" href="#demo">Try the demo again</a>
+      <a class="btn-cta" href="#demo">See the demo again</a>
       <a class="btn-ghost" href="#top">Back to the globe ↑</a>
     </div>
   </div>
@@ -407,7 +393,6 @@
     <ol class="refs">
       <li id="ref-breiman">Breiman, L. (2001). Random forests. <i>Machine Learning, 45</i>(1), 5–32.</li>
       <li id="ref-briones">Briones-Herrera, C. I., et al. (2020). Near real-time automated early mapping of the perimeter of large forest fires from the aggregation of VIIRS and MODIS active fires in Mexico. <i>Remote Sensing, 12</i>(12), 2061.</li>
-      <li id="ref-ester">Ester, M., Kriegel, H.-P., Sander, J., &amp; Xu, X. (1996). A density-based algorithm for discovering clusters in large spatial databases with noise. <i>KDD-96</i>, 226–231.</li>
       <li id="ref-giglio">Giglio, L., Schroeder, W., &amp; Justice, C. O. (2016). The collection 6 MODIS active fire detection algorithm and fire products. <i>Remote Sensing of Environment, 178</i>, 31–41.</li>
       <li id="ref-kang">Kang, Y., Sung, T., &amp; Im, J. (2023). Toward an adaptable deep-learning model for satellite-based wildfire monitoring with consideration of environmental conditions. <i>Remote Sensing of Environment, 298</i>, 113814.</li>
       <li id="ref-lizundia">Lizundia-Loiola, J., et al. (2020). A spatio-temporal active-fire clustering approach for global burned area mapping at 250 m from MODIS data. <i>Remote Sensing of Environment, 236</i>, 111493.</li>

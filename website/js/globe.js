@@ -2,7 +2,9 @@
 //
 // • Land is drawn as a dot matrix (from Natural Earth, public domain).
 // • Every glowing point is a REAL fire detection from NASA FIRMS (24-hour global files).
-// • As you scroll, the camera moves through "keyframes": spin → Africa → satellites → California.
+// • The page opens on the planet's horizon. The fires switch on in a wave (the "ignition"),
+//   in step with the big counter in the headline.
+// • As you scroll, the camera moves through "keyframes": horizon → Africa → satellites → California.
 // • Bloom post-processing makes the fires glow.
 
 import * as THREE from 'three';
@@ -14,14 +16,19 @@ import { makeRenderer, fit, latLonToVec3, loadFires, loadLand, reduceMotion, isS
          smooth, clamp01, lerp, lerpAngle, COLORS } from './lib.js';
 
 // Camera "keyframes", one per story step. lon/lat = the point on Earth facing the camera.
-// dist = camera distance (Earth radius = 1). shift = how far right of center the globe sits (fraction of screen width).
+// dist = camera distance (Earth radius = 1). shift = how far right of center the globe sits, and
+// drop = how far below center (both as a fraction of the screen). dropM is `drop` on phones,
+// where the globe sits above the text instead of beside it.
 const KEYS = [
-  { lon: null,   lat: 18,  dist: 3.10, shift: 0.20, sensor: 0, size: 1.0,  sats: 0 },  // 0 hero: slow spin
-  { lon: 18,     lat: 4,   dist: 2.45, shift: 0.17, sensor: 0, size: 0.55,  sats: 0 },  // 1 Africa: where most fires are
-  { lon: -40,    lat: 12,  dist: 3.40, shift: 0.17, sensor: 1, size: 0.7,  sats: 1 },  // 2 satellites + sensor colors
-  { lon: -119.6, lat: 37.4, dist: 1.55, shift: 0.17, sensor: 1, size: 0.55, sats: 0 },  // 3 California
-  { lon: -119.6, lat: 37.4, dist: 1.38, shift: 0.17, sensor: 1, size: 0.6,  sats: 0 },  // 4 hold
+  { lon: null,   lat: -56, dist: 1.72, shift: 0,    drop: 1.13, dropM: 0.80,  sensor: 0, size: 0.46, sats: 0 },  // 0 hero: the horizon, slowly turning
+  { lon: 18,     lat: 4,   dist: 2.45, shift: 0.17, drop: 0,    dropM: -0.16, sensor: 0, size: 0.5,  sats: 0 },  // 1 Africa: where most fires are
+  { lon: -40,    lat: 12,  dist: 3.40, shift: 0.17, drop: 0,    dropM: -0.16, sensor: 1, size: 0.5,  sats: 1 },  // 2 satellites + sensor colors
+  { lon: -119.6, lat: 37.4, dist: 1.55, shift: 0.17, drop: 0,   dropM: -0.16, sensor: 1, size: 0.55, sats: 0 },  // 3 California
+  { lon: -119.6, lat: 37.4, dist: 1.38, shift: 0.17, drop: 0,   dropM: -0.16, sensor: 1, size: 0.6,  sats: 0 },  // 4 hold
 ];
+
+// Where the hero starts: Africa, where most of the day's fires are, faces the camera.
+const START_LON = 14;
 
 export async function initGlobe({ canvas, story, onReady, onProgress }) {
   const renderer = makeRenderer(canvas);
@@ -95,25 +102,32 @@ export async function initGlobe({ canvas, story, onReady, onProgress }) {
     uTime: { value: 0 }, uPR: { value: renderer.getPixelRatio() }, uSize: { value: 1 },
     uSensorMix: { value: 0 }, uModis: { value: COLORS.modis }, uViirs: { value: COLORS.viirs },
     uViewH: { value: 800 },
+    uReveal: { value: reduceMotion ? 1 : 0 },   // 0 = no fires lit yet, 1 = all lit (the ignition)
   };
   {
-    const n = fires.n, pos = new Float32Array(n * 3), aS = new Float32Array(n), aF = new Float32Array(n), aR = new Float32Array(n);
+    const n = fires.n, pos = new Float32Array(n * 3), aS = new Float32Array(n), aF = new Float32Array(n), aR = new Float32Array(n), aI = new Float32Array(n);
     const v = new THREE.Vector3();
     for (let i = 0; i < n; i++) {
-      latLonToVec3(fires.lat[i] / 100, fires.lon[i] / 100, 1.002, v);
+      const lon = fires.lon[i] / 100;
+      latLonToVec3(fires.lat[i] / 100, lon, 1.002, v);
       pos.set([v.x, v.y, v.z], i * 3);
       aS[i] = fires.sensor[i]; aF[i] = fires.frp[i] / 10; aR[i] = Math.random();
+      // When this fire lights up during the ignition (0 = first, 1 = last). On the side facing
+      // the camera the fires light in a wave from west to east. On the far side, in random order.
+      const across = ((((lon - (START_LON - 90)) % 360) + 360) % 360) / 180;   // 0..1 across the visible face
+      aI[i] = (across <= 1 ? across : Math.random()) * 0.86 + Math.random() * 0.14;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aSensor', new THREE.BufferAttribute(aS, 1));
     g.setAttribute('aFrp', new THREE.BufferAttribute(aF, 1));
     g.setAttribute('aRand', new THREE.BufferAttribute(aR, 1));
+    g.setAttribute('aIgnite', new THREE.BufferAttribute(aI, 1));
     const m = new THREE.ShaderMaterial({
       uniforms: fireUniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       vertexShader: /* glsl */`
-        uniform float uTime, uPR, uSize, uSensorMix, uViewH; uniform vec3 uModis, uViirs;
-        attribute float aSensor, aFrp, aRand;
+        uniform float uTime, uPR, uSize, uSensorMix, uViewH, uReveal; uniform vec3 uModis, uViirs;
+        attribute float aSensor, aFrp, aRand, aIgnite;
         varying vec3 vColor; varying float vSensor; varying float vA;
         void main(){
           vec4 mv = modelViewMatrix * vec4(position, 1.);
@@ -121,13 +135,19 @@ export async function initGlobe({ canvas, story, onReady, onProgress }) {
           vA = smoothstep(-0.02, 0.3, dot(n, normalize(-mv.xyz)));           // hide the far side
           float lf = log(1. + aFrp) / log(10.);                               // log10(1 + FRP)
           float flicker = 0.82 + 0.18 * sin(uTime * (2. + aRand * 3.) + aRand * 40.);
-          float worldSize = 0.0085 * uSize * (0.75 + 0.55 * lf) * flicker;    // in Earth radii
+          // Ignition: the fire is off until the wave reaches it, then flashes white and settles.
+          float since = uReveal * 1.12 - aIgnite;
+          float lit = smoothstep(0., 0.012, since);
+          float flash = exp(-max(since, 0.) * 26.) * lit * (1. - step(1., uReveal));
+          float worldSize = 0.0085 * uSize * (0.75 + 0.55 * lf) * flicker * lit * (1. + 1.6 * flash);    // in Earth radii
           gl_PointSize = min(worldSize * uViewH / -mv.z, 70. * uPR);
           // "heat" colors: dull red for weak fires → white-yellow for intense ones
           float t = clamp(lf / 2.6, 0., 1.);
           vec3 heat = mix(vec3(0.9, 0.12, 0.02), vec3(1.0, 0.55, 0.08), smoothstep(0., .5, t));
           heat = mix(heat, vec3(1.0, 0.92, 0.6), smoothstep(.55, 1., t));
           vColor = mix(heat, aSensor < .5 ? uModis : uViirs, uSensorMix);
+          vColor = mix(vColor, vec3(1.0, 0.95, 0.8), flash * 0.8);
+          vA *= lit;
           vSensor = aSensor;
           gl_Position = projectionMatrix * mv;
         }`,
@@ -234,34 +254,47 @@ export async function initGlobe({ canvas, story, onReady, onProgress }) {
   addEventListener('pointermove', (e) => { mouse.tx = (e.clientX / innerWidth - 0.5); mouse.ty = (e.clientY / innerHeight - 0.5); }, { passive: true });
 
   // ---- Animation loop ----
-  let spinLon = -100, time = 0, visible = true, raf = 0;
-  const cur = { lon: -100, lat: 18, dist: 3.05, shift: 0.95, sensor: 0, size: 1, sats: 0 };
+  let spinLon = START_LON, time = 0, visible = true, raf = 0;
+  const cur = { lon: START_LON, lat: KEYS[0].lat, dist: KEYS[0].dist * 1.25, shift: 0, drop: KEYS[0].drop + 0.16, sensor: 0, size: KEYS[0].size, sats: 0 };
+  // Ignition: uReveal runs from 0 to 1 over `ignite.ms` once `ignite()` is called.
+  const ignition = { start: 0, ms: 0 };
+  function ignite(ms) {
+    if (reduceMotion) { fireUniforms.uReveal.value = 1; return; }
+    ignition.start = performance.now(); ignition.ms = ms;
+  }
 
   function frame(ts) {
     const t = ts / 1000, dt = Math.min(0.05, t - time); time = t;
-    if (!reduceMotion) spinLon += dt * 4.5;                 // slow spin in the hero
+    if (!reduceMotion) spinLon += dt * 1.4;                 // slow spin in the hero
+    if (ignition.ms) {
+      const k = clamp01((ts - ignition.start) / ignition.ms);
+      fireUniforms.uReveal.value = k;
+      if (k >= 1) ignition.ms = 0;
+    }
 
     // Blend between the two keyframes on either side of the current scroll position
     const i = Math.min(KEYS.length - 2, Math.floor(stepF)), f = smooth(clamp01(stepF - i));
     const A = KEYS[i], B = KEYS[i + 1];
     const lonA = A.lon ?? spinLon, lonB = B.lon ?? spinLon;
+    const small = isSmall();
     const target = {
+      drop: small ? lerp(A.dropM, B.dropM, f) : lerp(A.drop, B.drop, f),
       lon: lerpAngle(lonA, lonB, f), lat: lerp(A.lat, B.lat, f), dist: lerp(A.dist, B.dist, f),
       shift: lerp(A.shift, B.shift, f), sensor: lerp(A.sensor, B.sensor, f), size: lerp(A.size, B.size, f), sats: lerp(A.sats, B.sats, f),
     };
     // ease toward the target so fast scrolling still looks smooth
     const k = 1 - Math.pow(0.0015, dt);
     cur.lon = lerpAngle(cur.lon, target.lon, k); cur.lat = lerp(cur.lat, target.lat, k);
-    cur.dist = lerp(cur.dist, target.dist, k); cur.shift = lerp(cur.shift, target.shift, k);
+    cur.dist = lerp(cur.dist, target.dist, k); cur.shift = lerp(cur.shift, target.shift, k); cur.drop = lerp(cur.drop, target.drop, k);
     cur.sensor = lerp(cur.sensor, target.sensor, k); cur.size = lerp(cur.size, target.size, k); cur.sats = lerp(cur.sats, target.sats, k);
     mouse.x += (mouse.tx - mouse.x) * 0.04; mouse.y += (mouse.ty - mouse.y) * 0.04;
 
     spin.rotation.y = THREE.MathUtils.degToRad(-cur.lon);
     tilt.rotation.x = THREE.MathUtils.degToRad(cur.lat);
-    // Slide the picture (not the globe) so the globe sits beside the text on wide screens,
-    // or above the text on phones. setViewOffset shifts the view without distorting it.
-    const small = isSmall(), w = canvas.clientWidth, h = canvas.clientHeight;
-    camera.setViewOffset(w, h, small ? 0 : -cur.shift * w, small ? h * 0.16 : 0, w, h);
+    // Slide the picture (not the globe) so the globe sits below the headline in the hero, then
+    // beside the text on wide screens or above it on phones. setViewOffset shifts the view without distorting it.
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    camera.setViewOffset(w, h, small ? 0 : -cur.shift * w, -cur.drop * h, w, h);
     camera.position.set(mouse.x * 0.25, -mouse.y * 0.18, small ? cur.dist * 1.3 : cur.dist);
     camera.lookAt(0, 0, 0);
 
@@ -287,5 +320,5 @@ export async function initGlobe({ canvas, story, onReady, onProgress }) {
 
   time = performance.now() / 1000;
   raf = requestAnimationFrame(frame);
-  onReady?.({ total: fires.n });
+  onReady?.({ total: fires.n, ignite });
 }

@@ -1,13 +1,17 @@
 # Project website
 
-The demo site for **Ember**, a NASA Space Apps Challenge project (originally a science fair project,
-"Clustering vs. Machine Learning: Identifying Real Wildfires from Harmonized MODIS and VIIRS Satellite Data"). It's built with HTML, CSS, JavaScript and three.js
-(stored in `vendor/`), and needs no build step.
+The demo site for **Ember**, a NASA Space Apps Challenge project that uses machine learning (a Random
+Forest) to sort real wildfires from false alarms in combined MODIS and VIIRS data. It's built with HTML,
+CSS, JavaScript and three.js (stored in `vendor/`), and needs no build step.
+
+The page has three acts: the hook (a counter runs up while the day's fires switch on across the
+planet), the explanation (a scroll story on the globe, then the problem and the method), and the demo
+(a screenshot of the real app and an interactive preview).
 
 ## Preview on your Mac
 The 3D globe loads its data with `fetch`, so open the site through a local server, not by double-clicking:
 ```
-cd ~/Desktop/"science fair"/website
+cd ~/Desktop/Ember_Wildfires/website
 python3 -m http.server 8000
 ```
 Then open http://localhost:8000. Press Ctrl-C in Terminal to stop.
@@ -17,11 +21,11 @@ Then open http://localhost:8000. Press Ctrl-C in Terminal to stop.
 |---|---|
 | `index.html` | All the page text |
 | `css/style.css` | Colors, fonts, layout |
-| `js/globe.js` | The 3D Earth with real FIRMS detections (top of the page) |
+| `js/globe.js` | The 3D Earth with real FIRMS detections: the opening "ignition" and the scroll story |
 | `js/scan.js` | 3D satellite scan / pixel-size demo |
-| `js/cube.js` | 3D space-time cube DBSCAN demo |
 | `js/appmock.js` | Interactive Ember app preview (real detections by region, click to inspect) |
-| `js/main.js` | Navigation, counters, Random Forest demo, starts the 3D scenes |
+| `js/main.js` | Navigation, the opening counter, Random Forest demo, starts the 3D scenes |
+| `img/ember-app.jpg` | Screenshot of the real Ember app, shown in the demo section |
 | `data/fires.bin` | Every MODIS + NOAA-20 VIIRS detection from one 24-hour FIRMS global file (packed) |
 | `data/land.bin` | Dots on land for the globe (from Natural Earth, public domain) |
 | `data/meta.json` | Counts and dates shown on the page |
