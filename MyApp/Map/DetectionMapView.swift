@@ -37,7 +37,7 @@ struct DetectionMapView: NSViewRepresentable {
     func updateNSView(_ map: TrackingMapView, context: Context) {
         let c = context.coordinator
         c.applyStyle(store.mapStyle, to: map)
-        c.syncDetections(version: store.dataVersion, sensors: store.visibleSensors, detections: store.displayedDetections, on: map)
+        c.syncDetections(key: store.displayKey, detections: store.displayedDetections, on: map)
         c.syncAreaOutline(store.query.bounds, on: map)
         c.syncSelection(store.selected, on: map)
         if c.lastZoomRequest != store.zoomRequest {
@@ -64,7 +64,7 @@ struct DetectionMapView: NSViewRepresentable {
         var lastFocusID = 0
 
         private var detectionOverlay: DetectionOverlay?
-        private var detectionKey: (Int, Set<Sensor>)?
+        private var detectionKey: FireStore.DisplayKey?
         private var areaOverlay: MKPolygon?
         /// A see-through dark layer over satellite imagery, so the detections are the brightest thing on the map.
         private var dimOverlay: MKPolygon?
@@ -74,10 +74,10 @@ struct DetectionMapView: NSViewRepresentable {
 
         init(store: FireStore) { self.store = store }
 
-        /// Replaces the detection overlay only when the data or the sensor toggles change.
-        func syncDetections(version: Int, sensors: Set<Sensor>, detections: [FireDetection], on map: MKMapView) {
-            if let k = detectionKey, k.0 == version, k.1 == sensors { return }
-            detectionKey = (version, sensors)
+        /// Replaces the detection overlay only when the data, the sensor toggles, or the ML filter change.
+        func syncDetections(key: FireStore.DisplayKey, detections: [FireDetection], on map: MKMapView) {
+            if detectionKey == key { return }
+            detectionKey = key
             let newOverlay = DetectionOverlay(detections: detections)
             map.addOverlay(newOverlay, level: .aboveLabels)
             if let old = detectionOverlay { map.removeOverlay(old) }

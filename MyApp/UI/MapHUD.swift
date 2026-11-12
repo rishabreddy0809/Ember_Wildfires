@@ -22,7 +22,7 @@ struct LegendHUD: View {
                         Text(s.rawValue).font(.wide(10.5)).tracking(1)
                         Text(s.nominalResolution).font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                         Spacer(minLength: 8)
-                        Text(store.count(s).grouped)
+                        Text(store.shownCount(s).grouped)
                             .font(.mono(11, .semibold))
                             .contentTransition(.numericText())
                     }
@@ -32,6 +32,13 @@ struct LegendHUD: View {
                 .buttonStyle(.plain)
                 .help("\(isOn ? "Hide" : "Show") \(s.rawValue) (\(s == .modis ? "⌘1" : "⌘2"))")
                 .accessibilityLabel("\(s.rawValue), \(store.count(s)) detections, \(isOn ? "shown" : "hidden")")
+            }
+
+            if store.mlFilter {
+                Label("ML filter: wildfires only", systemImage: "sparkles")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(Theme.ember)
+                    .help("Showing only detections the harmonized MODIS + VIIRS model classifies as wildfire (⌘3)")
             }
 
             SectionRule()
@@ -148,15 +155,12 @@ private struct TimelineChart: View {
     @State private var bins: [HourBin] = []
     @State private var selection: Date?
 
-    private struct DataKey: Equatable {
-        let version: Int
-        let sensors: Set<Sensor>
-    }
-
     var body: some View {
         Group {
             if bins.isEmpty {
-                Text(store.detections.isEmpty ? "No detections loaded yet" : "No detections to plot. Both sensors are hidden.")
+                Text(store.detections.isEmpty ? "No detections loaded yet"
+                     : store.mlFilter ? "The ML model classified none of these detections as wildfire."
+                     : "No detections to plot. Both sensors are hidden.")
                     .font(.system(size: 11.5))
                     .foregroundStyle(Theme.textTertiary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -165,7 +169,7 @@ private struct TimelineChart: View {
             }
         }
         .frame(height: 92)
-        .onChange(of: DataKey(version: store.dataVersion, sensors: store.visibleSensors), initial: true) {
+        .onChange(of: store.displayKey, initial: true) {
             bins = Self.makeBins(store.displayedDetections)
         }
         .onChange(of: selection) {

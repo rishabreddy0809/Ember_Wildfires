@@ -1,0 +1,127 @@
+{
+  "combined": {
+    "all": {
+      "n": 247389,
+      "positives": 211720,
+      "accuracy": 0.9378064505697504,
+      "recall": 0.9907424900812394,
+      "precision": 0.9398438970186302,
+      "f1": 0.964622240208229,
+      "roc_auc": 0.914447694823456,
+      "confusion": {
+        "tn": 22243,
+        "fp": 13426,
+        "fn": 1960,
+        "tp": 209760
+      }
+    },
+    "MODIS": {
+      "n": 45580,
+      "positives": 37165,
+      "accuracy": 0.901601579640193,
+      "recall": 0.9813803309565451,
+      "precision": 0.9058014205533205,
+      "f1": 0.9420774625150133,
+      "roc_auc": 0.8908225055694607,
+      "confusion": {
+        "tn": 4622,
+        "fp": 3793,
+        "fn": 692,
+        "tp": 36473
+      }
+    },
+    "VIIRS": {
+      "n": 201809,
+      "positives": 174555,
+      "accuracy": 0.9459835785321765,
+      "recall": 0.9927358139268425,
+      "precision": 0.9473376339383337,
+      "f1": 0.9695055598293587,
+      "roc_auc": 0.9179879289313689,
+      "confusion": {
+        "tn": 17621,
+        "fp": 9633,
+        "fn": 1268,
+        "tp": 173287
+      }
+    }
+  },
+  "MODIS_only": {
+    "MODIS": {
+      "n": 45580,
+      "positives": 37165,
+      "accuracy": 0.8993856954804739,
+      "recall": 0.9865464819050181,
+      "precision": 0.899732521901303,
+      "f1": 0.9411417423892396,
+      "roc_auc": 0.8617707595658071,
+      "confusion": {
+        "tn": 4329,
+        "fp": 4086,
+        "fn": 500,
+        "tp": 36665
+      }
+    }
+  },
+  "VIIRS_only": {
+    "VIIRS": {
+      "n": 201809,
+      "positives": 174555,
+      "accuracy": 0.9451857944888483,
+      "recall": 0.9923061499240927,
+      "precision": 0.946870678015208,
+      "f1": 0.9690561308694606,
+      "roc_auc": 0.9077452926735585,
+      "confusion": {
+        "tn": 17535,
+        "fp": 9719,
+        "fn": 1343,
+        "tp": 173212
+      }
+    }
+  },
+  "baseline_confidence_flag": {
+    "all": {
+      "n": 247389,
+      "positives": 211720,
+      "accuracy": 0.8214512367162646,
+      "recall": 0.9524135650859626,
+      "precision": 0.8553666948048918,
+      "f1": 0.9012852516755651,
+      "roc_auc": 0.49825674189143515,
+      "confusion": {
+        "tn": 1573,
+        "fp": 34096,
+        "fn": 10075,
+        "tp": 201645
+      }
+    }
+  },
+  "fire_level_recall_2021": {
+    "fires_with_detections": 131,
+    "fires_caught": 43,
+    "recall": 0.3282442748091603
+  },
+  "feature_importance": {
+    "n_all_5km_0d": 0.1804,
+    "n_other_2km_1d": 0.1232,
+    "n_all_5km_prev3d": 0.119,
+    "n_same_2km_0d": 0.1125,
+    "maxfrp_other_2km_1d": 0.0751,
+    "maxfrp_all_5km_0d": 0.0685,
+    "month": 0.0546,
+    "bright_tir": 0.0396,
+    "pixel_area_km2": 0.0333,
+    "hour_utc": 0.0313,
+    "bright_mir": 0.0288,
+    "frp_density": 0.0267,
+    "delta_t": 0.0266,
+    "frp": 0.0258,
+    "log_frp": 0.0252,
+    "cross_sensor_confirmed": 0.0134,
+    "n_all_1km_prev30_365d": 0.0079,
+    "is_viirs": 0.0036,
+    "is_day": 0.003,
+    "conf_class": 0.0017
+  }
+}

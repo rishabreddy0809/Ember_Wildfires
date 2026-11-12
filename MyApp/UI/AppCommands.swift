@@ -4,6 +4,7 @@
 //  ⌘R  Refresh               ⌘.   Cancel download
 //  ⌘E  Export CSV…           ⌘↩   Fetch with the current sidebar settings
 //  ⌘1  Toggle MODIS          ⌘2   Toggle VIIRS
+//  ⌘3  Harmonized ML filter (wildfires only)
 //  ⌘0  Zoom to area          ⌥⌘I  Show/hide inspector
 //  [ ] Step through overlapping detections     Esc  Clear selection
 
@@ -32,6 +33,10 @@ struct AppCommands: Commands {
                 .keyboardShortcut("1")
             Toggle("Show VIIRS", isOn: Binding(get: { store.visibleSensors.contains(.viirs) }, set: { _ in store.toggle(.viirs) }))
                 .keyboardShortcut("2")
+            Toggle("Harmonized ML: Wildfires Only", isOn: Binding(get: { store.mlFilter },
+                                                                  set: { store.displayMode = $0 ? .wildfireML : .both }))
+                .keyboardShortcut("3")
+                .disabled(!WildfireClassifier.isAvailable)
             Divider()
             Menu("Area") {
                 ForEach(AreaPreset.all) { p in Button(p.name) { store.selectPreset(p) } }

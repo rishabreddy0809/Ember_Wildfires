@@ -15,6 +15,8 @@ struct SidebarView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 BrandHeader()
+                ViewModeSection(store: store)
+                SectionRule()
                 ComparisonSection(store: store)
                 SectionRule()
                 QuerySection(store: store)
@@ -55,6 +57,99 @@ private struct BrandHeader: View {
         .padding(.leading, -4)   // The icon image has a little empty space around it.
         .padding(.bottom, 2)
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - View mode
+
+/// MODIS only / VIIRS only / both raw / harmonized ML. The ML option shows both sensors and
+/// hides detections the random forest judges not to be wildfire.
+private struct ViewModeSection: View {
+    @Bindable var store: FireStore
+
+    var body: some View {
+        SidebarSection("Show") {
+            EmptyView()
+        } content: {
+            Picker("Show", selection: Binding(get: { store.displayMode },
+                                              set: { m in withAnimation(.snappy) { store.displayMode = m } })) {
+                ForEach(DisplayMode.allCases) { m in
+                    Text(m.shortLabel).tag(m)
+                        .selectionDisabled(m == .wildfireML && !WildfireClassifier.isAvailable)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .help("⌘1 / ⌘2 toggle each sensor · ⌘3 harmonized ML filter")
+
+            Text(store.displayMode.title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(store.mlFilter ? Theme.ember : Theme.textSecondary)
+
+            if store.mlFilter {
+                MLSummary(store: store)
+            } else if !WildfireClassifier.isAvailable {
+                Text("ML model file (ember_rf.bin) is missing from the app bundle.")
+                    .font(.footnoteSmall).foregroundStyle(Theme.danger)
+            }
+        }
+    }
+}
+
+private struct MLSummary: View {
+    let store: FireStore
+
+    var body: some View {
+        let total = store.detections.count
+        let kept = store.wildfireCount
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                stat("Wildfire", kept, Theme.ember)
+                stat("Filtered out", total - kept, Theme.textSecondary)
+            }
+            if total > 0 {
+                MeterBar(fraction: Double(kept) / Double(total),
+                         fill: LinearGradient(colors: [Theme.emberHot, Theme.ember], startPoint: .leading, endPoint: .trailing),
+                         height: 4)
+            }
+            sensitivity
+            Text("Random forest on harmonized MODIS + VIIRS data: one brightness, FRP-per-km² and confidence scale; cross-sensor confirmation; day/night persistence; NLCD land cover; and 2017–2019 burn history. Filtered out = likely farm or prescribed burns, industrial heat, or false alarms. Trained on California 2020. \(WildfireClassifier.testSummary).")
+                .font(.footnoteSmall)
+                .foregroundStyle(Theme.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var sensitivity: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                HUDLabel("Sensitivity")
+                Spacer()
+                Text(String(format: "cut %.2f%@", store.mlThreshold,
+                            abs(store.mlThreshold - WildfireClassifier.threshold) < 0.001 ? " (default)" : ""))
+                    .font(.mono(10)).foregroundStyle(Theme.textSecondary)
+            }
+            Slider(value: Binding(get: { Double(store.mlThreshold) }, set: { store.mlThreshold = Float($0) }),
+                   in: 0.3...0.8, step: 0.05)
+                .controlSize(.small)
+                .tint(Theme.ember)
+            HStack {
+                Text("Catch more small fires")
+                Spacer()
+                Text("Fewer false alarms")
+            }
+            .font(.system(size: 9.5)).foregroundStyle(Theme.textTertiary)
+        }
+        .help("Probability needed to call a detection a wildfire. The default (0.60) was chosen on 2020 data. On 2021, 0.40 caught 142 of 168 fires and removed 90% of non-wildfire detections; 0.60 caught 129 and removed 92%.")
+    }
+
+    private func stat(_ label: String, _ n: Int, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HUDLabel(label)
+            Text(n.grouped).font(.hudNumber(20)).foregroundStyle(color)
+                .contentTransition(.numericText(value: Double(n)))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -440,12 +535,18 @@ private struct PipelineSection: View {
                     chip(step.name, highlight: true)
                     arrow
                 }
+                if store.mlFilter {
+                    chip("ML filter", highlight: true)
+                    arrow
+                }
                 chip("Map")
             }
             .lineLimit(1)
             .minimumScaleFactor(0.7)
 
-            Text("Every detection is shown exactly as FIRMS reported it. Processing steps are added in DetectionProcessor.swift.")
+            Text(store.mlFilter
+                 ? "The ML filter only changes what the map shows. Cache and CSV export keep every detection exactly as FIRMS reported it."
+                 : "Every detection is shown exactly as FIRMS reported it. Processing steps are added in DetectionProcessor.swift.")
                 .font(.footnoteSmall)
                 .foregroundStyle(Theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)

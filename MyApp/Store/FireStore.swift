@@ -19,6 +19,13 @@ final class FireStore {
     /// What the processing pipeline returned. This is what the map shows.
     /// Right now it is identical to `rawDetections`.
     private(set) var detections: [FireDetection] = []
+    /// P(wildfire) from the harmonized MODIS + VIIRS random forest, by detection id.
+    private(set) var wildfireScores: [UUID: Float] = [:]
+    /// How many shown detections the model classifies as wildfire at the current sensitivity.
+    var wildfireCount: Int { detections.lazy.filter { self.isWildfire($0) }.count }
+    /// Probability cut for "wildfire". Lower catches more small fires; higher removes more
+    /// non-wildfire detections. Defaults to the value chosen on 2020 data.
+    var mlThreshold: Float = WildfireClassifier.threshold
     /// The query that produced the data currently shown, which can differ from `query` while you edit.
     private(set) var loadedQuery: FireQuery?
     private(set) var lastUpdated: Date?
@@ -36,6 +43,8 @@ final class FireStore {
 
     // MARK: Map & selection
     var visibleSensors: Set<Sensor> = [.modis, .viirs]
+    /// When on, the map shows only detections the harmonized ML model classifies as wildfire.
+    private(set) var mlFilter = false
     var mapStyle: MapStyleChoice = .satellite
     /// Every detection under the last click, nearest first. Overlapping points are kept separate, never merged.
     var selectionStack: [FireDetection] = []
@@ -63,9 +72,55 @@ final class FireStore {
 
     func count(_ sensor: Sensor) -> Int { detections.lazy.filter { $0.sensor == sensor }.count }
 
-    /// Detections that pass the sensor on/off toggles. This is a display choice, not a data filter.
+    /// Detections that pass the sensor toggles and, in ML mode, the wildfire classifier.
+    /// This is a display choice: the raw data, cache, and CSV export are never filtered.
     var displayedDetections: [FireDetection] {
-        visibleSensors.count == Sensor.allCases.count ? detections : detections.filter { visibleSensors.contains($0.sensor) }
+        let all = visibleSensors.count == Sensor.allCases.count && !mlFilter
+        return all ? detections : detections.filter(isDisplayed)
+    }
+
+    func isDisplayed(_ d: FireDetection) -> Bool {
+        visibleSensors.contains(d.sensor) && (!mlFilter || isWildfire(d))
+    }
+
+    func wildfireProbability(_ d: FireDetection) -> Float? { wildfireScores[d.id] }
+
+    func isWildfire(_ d: FireDetection) -> Bool { (wildfireScores[d.id] ?? 0) >= mlThreshold }
+
+    /// Count for one sensor as currently shown (after the ML filter, if it is on).
+    func shownCount(_ sensor: Sensor) -> Int {
+        mlFilter ? detections.lazy.filter { $0.sensor == sensor && self.isWildfire($0) }.count : count(sensor)
+    }
+
+    /// MODIS only, VIIRS only, both raw, or both filtered by the harmonized ML model.
+    var displayMode: DisplayMode {
+        get {
+            if mlFilter { return .wildfireML }
+            if visibleSensors == [.modis] { return .modis }
+            if visibleSensors == [.viirs] { return .viirs }
+            return .both
+        }
+        set {
+            mlFilter = newValue == .wildfireML && WildfireClassifier.isAvailable
+            switch newValue {
+            case .modis: visibleSensors = [.modis]
+            case .viirs: visibleSensors = [.viirs]
+            case .both, .wildfireML: visibleSensors = Set(Sensor.allCases)
+            }
+            selectionStack.removeAll { !isDisplayed($0) }
+            selectionIndex = 0
+        }
+    }
+
+    /// Changes whenever what the map should draw changes.
+    struct DisplayKey: Hashable {
+        let version: Int
+        let sensors: Set<Sensor>
+        let mlFilter: Bool
+        let threshold: Float
+    }
+    var displayKey: DisplayKey {
+        DisplayKey(version: dataVersion, sensors: visibleSensors, mlFilter: mlFilter, threshold: mlFilter ? mlThreshold : 0)
     }
 
     var hasMapKey: Bool { SecretsLoader.mapKey() != nil }
@@ -109,7 +164,8 @@ final class FireStore {
         if let reason = query.bounds.validationError { error = .invalidArea(reason); return }
 
         // Cost = number of requests × days. This is a conservative estimate, since FIRMS counts larger requests as more than one transaction.
-        let cost = Sensor.allCases.count * query.dayCount
+        // One extra day is downloaded before the range as context for the ML model (see apply).
+        let cost = Sensor.allCases.count * (query.dayCount + 1)
         if let wait = rateLimiter.waitTime(forCost: cost) {
             error = .rateLimited(retryAfter: wait)
             return
@@ -117,6 +173,9 @@ final class FireStore {
         rateLimiter.record(cost: cost)
 
         let q = query
+        var fetch = q
+        fetch.startDate = FireQuery.utc.date(byAdding: .day, value: -1, to: q.startDate) ?? q.startDate
+        fetch.dayCount = q.dayCount + 1
         let client = FIRMSClient(mapKey: key)
         isLoading = true
         defer { isLoading = false; loadingStatus = "" }
@@ -124,8 +183,8 @@ final class FireStore {
         do {
             loadingStatus = "Contacting FIRMS…"
             // MODIS and VIIRS are downloaded separately and at the same time.
-            async let modisPages = client.fetchCSV(for: .modis, query: q)
-            async let viiirsPages = client.fetchCSV(for: .viirs, query: q)
+            async let modisPages = client.fetchCSV(for: .modis, query: fetch)
+            async let viiirsPages = client.fetchCSV(for: .viirs, query: fetch)
             let (m, v) = try await (modisPages, viiirsPages)
 
             loadingStatus = "Parsing detections…"
@@ -144,7 +203,7 @@ final class FireStore {
             let now = Date()
             skippedRows = skipped
             await apply(raw: combined, query: q, fetchedAt: now, fromCache: false)
-            emptyResultNotice = combined.isEmpty
+            emptyResultNotice = rawDetections.isEmpty
             try? await DetectionCache.save(CachedSnapshot(fetchedAt: now, query: q, detections: combined))
         } catch is CancellationError {
             // The user cancelled, so leave the current data as it is.
@@ -156,11 +215,18 @@ final class FireStore {
     }
 
     /// Sends raw detections through the processing pipeline and publishes the result.
+    /// `raw` may include the context day before the query range: the ML model uses it
+    /// (it looks one day back), but only detections inside the range are shown and exported.
     private func apply(raw: [FireDetection], query q: FireQuery, fetchedAt: Date, fromCache: Bool) async {
         loadingStatus = "Processing (\(pipeline.steps.map(\.name).joined(separator: " → ")))…"
         let processed = (try? await pipeline.run(raw)) ?? raw
-        rawDetections = raw
-        detections = processed
+        loadingStatus = "Classifying with harmonized MODIS + VIIRS model…"
+        let scores = await WildfireClassifier.scores(for: processed)
+        let first = FireQuery.firmsDateString(q.startDate), last = FireQuery.firmsDateString(q.endDate)
+        let inRange = { (d: FireDetection) in d.acqDate >= first && d.acqDate <= last }
+        rawDetections = raw.filter(inRange)
+        detections = processed.filter(inRange)
+        wildfireScores = scores
         dataVersion += 1
         loadedQuery = q
         lastUpdated = fetchedAt
@@ -211,7 +277,7 @@ final class FireStore {
 
     func toggle(_ sensor: Sensor) {
         if visibleSensors.contains(sensor) { visibleSensors.remove(sensor) } else { visibleSensors.insert(sensor) }
-        selectionStack.removeAll { !visibleSensors.contains($0.sensor) }
+        selectionStack.removeAll { !isDisplayed($0) }
         selectionIndex = 0
     }
 
@@ -238,6 +304,29 @@ final class FireStore {
 
     func clearCache() {
         DetectionCache.clear()
+    }
+}
+
+/// What the map shows. The ML option uses both sensors, harmonized, and hides detections
+/// the classifier judges not to be wildfire (farm or prescribed burns, industrial heat, false alarms).
+enum DisplayMode: String, CaseIterable, Identifiable {
+    case modis, viirs, both, wildfireML
+    var id: String { rawValue }
+    var shortLabel: String {
+        switch self {
+        case .modis: "MODIS"
+        case .viirs: "VIIRS"
+        case .both: "Both"
+        case .wildfireML: "ML"
+        }
+    }
+    var title: String {
+        switch self {
+        case .modis: "MODIS only"
+        case .viirs: "VIIRS only"
+        case .both: "MODIS + VIIRS (raw)"
+        case .wildfireML: "Harmonized ML: wildfires only"
+        }
     }
 }
 

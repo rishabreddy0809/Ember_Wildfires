@@ -22,10 +22,21 @@ Settings (⌘,) shows whether the key was found.
 | Cancel download | ⌘. |
 | Export combined CSV | ⌘E |
 | Show/hide MODIS, VIIRS | ⌘1, ⌘2 |
+| Harmonized ML filter (wildfires only) | ⌘3 |
 | Zoom to area | ⌘0 |
 | Show/hide inspector | ⌥⌘I |
 | Step through overlapping detections | [ and ] |
 | Clear selection | Esc |
+
+The **Show** picker at the top of the sidebar switches between MODIS only, VIIRS only, both
+(raw), and **ML**. ML mode shows both sensors and hides detections that a random forest trained on
+harmonized MODIS + VIIRS data judges are not wildfire: farm and prescribed burns, industrial heat,
+and false alarms. On California 2021 it removed 92% of non-wildfire detections at 99% precision, and caught
+126 of 168 mapped fires, including 49 of 77 fires with fewer than 5 detections. On 2022 and
+2023, which it never saw, accuracy was 93% and 90%; guessing "wildfire" every time gets 45%. It
+keeps working if MODIS or VIIRS goes offline. A
+**Sensitivity** slider trades catching more small fires against removing more false alarms. The inspector shows each detection's wildfire probability. The filter changes
+only the map; the cache and CSV export are unchanged. See `ml/README.md` for how the model was built.
 
 Click any point to see every FIRMS column for it. If several detections overlap under the
 cursor, the inspector lists all of them, one at a time.

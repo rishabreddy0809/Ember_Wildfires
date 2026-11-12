@@ -1,0 +1,46 @@
+2020: 574,470 detections, 91.2% wildfire | 2021: 247,389, 91.0% wildfire
+model selection on 2020 (grouped by month):
+  cv depth 14 leaf 10 maxf sqrt w^-0.5: best so far 0.804
+  cv depth 14 leaf 10 maxf sqrt w^-1.0: best so far 0.832
+  cv depth 14 leaf 10 maxf 0.4 w^-0.5: best so far 0.832
+  cv depth 14 leaf 10 maxf 0.4 w^-1.0: best so far 0.844
+  cv depth 14 leaf 30 maxf sqrt w^-0.5: best so far 0.844
+  cv depth 14 leaf 30 maxf sqrt w^-1.0: best so far 0.850
+  cv depth 14 leaf 30 maxf 0.4 w^-0.5: best so far 0.850
+  cv depth 14 leaf 30 maxf 0.4 w^-1.0: best so far 0.855
+  cv depth 20 leaf 10 maxf sqrt w^-0.5: best so far 0.855
+  cv depth 20 leaf 10 maxf sqrt w^-1.0: best so far 0.855
+  cv depth 20 leaf 10 maxf 0.4 w^-0.5: best so far 0.855
+  cv depth 20 leaf 10 maxf 0.4 w^-1.0: best so far 0.855
+  cv depth 20 leaf 30 maxf sqrt w^-0.5: best so far 0.855
+  cv depth 20 leaf 30 maxf sqrt w^-1.0: best so far 0.855
+  cv depth 20 leaf 30 maxf 0.4 w^-0.5: best so far 0.855
+  cv depth 20 leaf 30 maxf 0.4 w^-1.0: best so far 0.855
+chosen: {'depth': 14, 'leaf': 30, 'max_features': 0.4, 'power': 1.0, 'thr': 0.6, 'score': 0.8554575837865477, 'fire_recall': 0.9061032863849765, 'removed': 0.8048118811881189, 'recall': 0.9733725213275569}
+exported ember_rf.bin: 100,420 nodes, 2.2 MB, max |sklearn - exported| 4.5e-09
+
+=== 2021 test (trained on 2020; labels = perimeters + 1 pixel) ===
+v3 (new app model)         acc 0.966  recall 0.971  precision 0.992  non-wildfire removed 0.924  fires 126/168  {'1-4': '49/77', '5-19': '35/46', '20-99': '16/19', '100-+': '26/26'}  auc 0.977
+v3 outside grids           acc 0.953  recall 0.959  precision 0.989  non-wildfire removed 0.893  fires 104/168  {'1-4': '28/77', '5-19': '35/46', '20-99': '16/19', '100-+': '25/26'}  auc 0.976
+  v3 on MODIS              acc 0.973  recall 0.977  precision 0.993  non-wildfire removed 0.928  fires 81/108  {'1-4': '39/63', '5-19': '15/18', '20-99': '8/8', '100-+': '19/19'}
+  v3 on VIIRS              acc 0.965  recall 0.969  precision 0.992  non-wildfire removed 0.923  fires 119/161  {'1-4': '50/78', '5-19': '30/43', '20-99': '14/15', '100-+': '25/25'}
+  v3, VIIRS only (no MODIS) acc 0.963  recall 0.967  precision 0.992  non-wildfire removed 0.922  fires 120/161  {'1-4': '50/78', '5-19': '31/43', '20-99': '14/15', '100-+': '25/25'}  auc 0.970
+  v3, MODIS only (no VIIRS) acc 0.908  recall 0.906  precision 0.992  non-wildfire removed 0.927  fires 82/108  {'1-4': '40/63', '5-19': '15/18', '20-99': '8/8', '100-+': '19/19'}  auc 0.960
+v2 (previous app model)    acc 0.974  recall 0.981  precision 0.990  non-wildfire removed 0.901  fires 107/168  {'1-4': '31/77', '5-19': '34/46', '20-99': '16/19', '100-+': '26/26'}  auc 0.987
+always 'wildfire'          acc 0.910  recall 1.000  precision 0.910  non-wildfire removed 0.000  fires 168/168  {'1-4': '77/77', '5-19': '46/46', '20-99': '19/19', '100-+': '26/26'}
+FIRMS confidence flag      acc 0.871  recall 0.953  precision 0.910  non-wildfire removed 0.043  fires 166/168  {'1-4': '75/77', '5-19': '46/46', '20-99': '19/19', '100-+': '26/26'}
+
+Top features:
+hist_months          0.314
+month                0.177
+lc_ag                0.099
+lc_shrub             0.067
+maxfrp_all_5km_0d    0.052
+sumfrp_all_5km_0d    0.042
+bright_tir           0.036
+lc_forest            0.035
+hour_utc             0.023
+n_day_5km_prev1d     0.019
+lc_dev               0.019
+pixel_area_km2       0.014
+.venv/bin/python train_v3.py 2>&1  2421.38s user 34.02s system 853% cpu 4:47.81 total

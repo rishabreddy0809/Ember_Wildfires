@@ -1,0 +1,270 @@
+{
+  "chosen": {
+    "depth": 14,
+    "leaf": 30,
+    "max_features": 0.4,
+    "power": 1.0,
+    "thr": 0.6,
+    "score": 0.8554575837865477,
+    "fire_recall": 0.9061032863849765,
+    "removed": 0.8048118811881189,
+    "recall": 0.9733725213275569,
+    "trees": 100
+  },
+  "features": [
+    "is_viirs",
+    "bright_mir",
+    "bright_tir",
+    "delta_t",
+    "frp",
+    "log_frp",
+    "frp_density",
+    "pixel_area_km2",
+    "conf_class",
+    "is_day",
+    "hour_utc",
+    "month",
+    "n_same_2km_0d",
+    "n_other_2km_prev1d",
+    "maxfrp_other_2km_prev1d",
+    "cross_sensor_confirmed",
+    "n_all_5km_0d",
+    "maxfrp_all_5km_0d",
+    "sumfrp_all_5km_0d",
+    "n_all_5km_prevday",
+    "n_night_5km_prev1d",
+    "n_day_5km_prev1d",
+    "other_sensor_present",
+    "lc_forest",
+    "lc_shrub",
+    "lc_grass",
+    "lc_ag",
+    "lc_dev",
+    "hist_months"
+  ],
+  "v3": {
+    "accuracy": 0.9664819373537222,
+    "recall": 0.9706832143634482,
+    "precision": 0.9923167392459324,
+    "nonfire_removed": 0.9239960470757345,
+    "fires_caught": 126,
+    "fires": 168,
+    "fire_recall": 0.75,
+    "by_size": {
+      "1-4": "49/77",
+      "5-19": "35/46",
+      "20-99": "16/19",
+      "100-+": "26/26"
+    },
+    "confusion": {
+      "tn": 20570,
+      "fp": 1692,
+      "fn": 6600,
+      "tp": 218527
+    },
+    "auc": 0.9772671889090018
+  },
+  "v3_without_static_grids": {
+    "accuracy": 0.952859666355416,
+    "recall": 0.9588143581178623,
+    "precision": 0.9890490045590964,
+    "nonfire_removed": 0.8926421705147786,
+    "fires_caught": 104,
+    "fires": 168,
+    "fire_recall": 0.6190476190476191,
+    "by_size": {
+      "1-4": "28/77",
+      "5-19": "35/46",
+      "20-99": "16/19",
+      "100-+": "25/26"
+    },
+    "confusion": {
+      "tn": 19872,
+      "fp": 2390,
+      "fn": 9272,
+      "tp": 215855
+    },
+    "auc": 0.9762748524127651
+  },
+  "v3_MODIS": {
+    "accuracy": 0.9725318121983326,
+    "recall": 0.97708705950597,
+    "precision": 0.9925362140928062,
+    "nonfire_removed": 0.9277223014740846,
+    "fires_caught": 81,
+    "fires": 108,
+    "fire_recall": 0.75,
+    "by_size": {
+      "1-4": "39/63",
+      "5-19": "15/18",
+      "20-99": "8/8",
+      "100-+": "19/19"
+    },
+    "confusion": {
+      "tn": 3902,
+      "fp": 304,
+      "fn": 948,
+      "tp": 40426
+    }
+  },
+  "v3_MODIS_only_input": {
+    "accuracy": 0.908117595436595,
+    "recall": 0.9062454681684149,
+    "precision": 0.9918262617712411,
+    "nonfire_removed": 0.9265335235378032,
+    "fires_caught": 82,
+    "fires": 108,
+    "fire_recall": 0.7592592592592593,
+    "by_size": {
+      "1-4": "40/63",
+      "5-19": "15/18",
+      "20-99": "8/8",
+      "100-+": "19/19"
+    },
+    "confusion": {
+      "tn": 3897,
+      "fp": 309,
+      "fn": 3879,
+      "tp": 37495
+    },
+    "auc": 0.9599978494307785
+  },
+  "v3_VIIRS": {
+    "accuracy": 0.9651155300308708,
+    "recall": 0.9692413185090856,
+    "precision": 0.9922669355782249,
+    "nonfire_removed": 0.9231280460788658,
+    "fires_caught": 119,
+    "fires": 161,
+    "fire_recall": 0.7391304347826086,
+    "by_size": {
+      "1-4": "50/78",
+      "5-19": "30/43",
+      "20-99": "14/15",
+      "100-+": "25/25"
+    },
+    "confusion": {
+      "tn": 16668,
+      "fp": 1388,
+      "fn": 5652,
+      "tp": 178101
+    }
+  },
+  "v3_VIIRS_only_input": {
+    "accuracy": 0.9626329846538063,
+    "recall": 0.966656326699428,
+    "precision": 0.9921023235031278,
+    "nonfire_removed": 0.921688081524147,
+    "fires_caught": 120,
+    "fires": 161,
+    "fire_recall": 0.7453416149068323,
+    "by_size": {
+      "1-4": "50/78",
+      "5-19": "31/43",
+      "20-99": "14/15",
+      "100-+": "25/25"
+    },
+    "confusion": {
+      "tn": 16642,
+      "fp": 1414,
+      "fn": 6127,
+      "tp": 177626
+    },
+    "auc": 0.970157149345659
+  },
+  "v2": {
+    "accuracy": 0.9739559964266803,
+    "recall": 0.9811617442599067,
+    "precision": 0.9901294556408233,
+    "nonfire_removed": 0.9010870541730303,
+    "fires_caught": 107,
+    "fires": 168,
+    "fire_recall": 0.6369047619047619,
+    "by_size": {
+      "1-4": "31/77",
+      "5-19": "34/46",
+      "20-99": "16/19",
+      "100-+": "26/26"
+    },
+    "confusion": {
+      "tn": 20060,
+      "fp": 2202,
+      "fn": 4241,
+      "tp": 220886
+    },
+    "auc": 0.9870754274464594
+  },
+  "baseline_all_fire": {
+    "accuracy": 0.9100121670729094,
+    "recall": 1.0,
+    "precision": 0.9100121670729094,
+    "nonfire_removed": 0.0,
+    "fires_caught": 168,
+    "fires": 168,
+    "fire_recall": 1.0,
+    "by_size": {
+      "1-4": "77/77",
+      "5-19": "46/46",
+      "20-99": "19/19",
+      "100-+": "26/26"
+    },
+    "confusion": {
+      "tn": 0,
+      "fp": 22262,
+      "fn": 0,
+      "tp": 225127
+    }
+  },
+  "baseline_confidence": {
+    "accuracy": 0.8706813965050992,
+    "recall": 0.952520133080439,
+    "precision": 0.9096338778574792,
+    "nonfire_removed": 0.04307789057586919,
+    "fires_caught": 166,
+    "fires": 168,
+    "fire_recall": 0.9880952380952381,
+    "by_size": {
+      "1-4": "75/77",
+      "5-19": "46/46",
+      "20-99": "19/19",
+      "100-+": "26/26"
+    },
+    "confusion": {
+      "tn": 959,
+      "fp": 21303,
+      "fn": 10689,
+      "tp": 214438
+    }
+  },
+  "feature_importance": {
+    "hist_months": 0.3138,
+    "month": 0.1774,
+    "lc_ag": 0.0987,
+    "lc_shrub": 0.0668,
+    "maxfrp_all_5km_0d": 0.0524,
+    "sumfrp_all_5km_0d": 0.0421,
+    "bright_tir": 0.0364,
+    "lc_forest": 0.0345,
+    "hour_utc": 0.0226,
+    "n_day_5km_prev1d": 0.0189,
+    "lc_dev": 0.0187,
+    "pixel_area_km2": 0.0144,
+    "n_all_5km_0d": 0.0134,
+    "frp_density": 0.0116,
+    "n_night_5km_prev1d": 0.0097,
+    "lc_grass": 0.0096,
+    "n_same_2km_0d": 0.0088,
+    "log_frp": 0.0078,
+    "delta_t": 0.0075,
+    "frp": 0.0074,
+    "n_all_5km_prevday": 0.007,
+    "n_other_2km_prev1d": 0.0064,
+    "bright_mir": 0.0058,
+    "maxfrp_other_2km_prev1d": 0.0037,
+    "is_day": 0.0029,
+    "other_sensor_present": 0.0005,
+    "conf_class": 0.0005,
+    "cross_sensor_confirmed": 0.0004,
+    "is_viirs": 0.0003
+  }
+}

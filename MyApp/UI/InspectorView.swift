@@ -16,6 +16,7 @@ struct InspectorView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         if store.selectionStack.count > 1 { StackPager(store: store) }
                         Hero(d: d)
+                        if let p = store.wildfireProbability(d) { WildfireScoreCard(probability: p, threshold: store.mlThreshold) }
                         Measurements(d: d)
                         Details(d: d)
                         RawColumns(d: d)
@@ -178,6 +179,42 @@ private struct FRPMeter: View {
         }
         .padding(.bottom, 13)
         .accessibilityHidden(true)
+    }
+}
+
+// MARK: - ML score
+
+/// The harmonized MODIS + VIIRS random forest's verdict for this detection.
+private struct WildfireScoreCard: View {
+    let probability: Float
+    let threshold: Float
+
+    var body: some View {
+        let isFire = probability >= threshold
+        let color = isFire ? Theme.ember : Theme.textSecondary
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                HUDLabel("ML wildfire probability")
+                Spacer()
+                Text(isFire ? "Likely wildfire" : "Likely not wildfire")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(color)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(Int((probability * 100).rounded()))").font(.hudNumber(24)).foregroundStyle(color)
+                Text("%").font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.textSecondary)
+            }
+            MeterBar(fraction: Double(probability),
+                     fill: LinearGradient(colors: [Theme.emberHot, Theme.ember], startPoint: .leading, endPoint: .trailing),
+                     height: 4)
+            Text("Not wildfire usually means a farm or prescribed burn, an industrial heat source, or a false alarm.")
+                .font(.system(size: 10)).foregroundStyle(Theme.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+        .accessibilityElement(children: .combine)
     }
 }
 
