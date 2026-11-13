@@ -151,6 +151,35 @@ The Park Fire (Butte and Tehama counties, 429,603 acres, California's 4th larges
 - Raw MODIS alone touches 1,423 cells, slightly more than the harmonized record's MODIS cells: the classifier dropped
   a few low-probability MODIS edge pixels.
 
+## Live test, 6–13 Nov 2026 (`live_test.py`)
+
+```
+uv run --project ml python ml/live_test.py     # last 7 days of FIRMS NRT + NIFC current incidents, no key
+```
+
+The shipped model was run, unchanged, on the last 7 days of near-real-time FIRMS detections for the contiguous US:
+11,297 detections from MODIS and NOAA-20 VIIRS, the app's pair. The answer key is NIFC's WFIGS current incidents:
+136 wildfires (WF) and 176 prescribed burns (RX), plus 42 mapped perimeters.
+
+| Detections | Count | Kept by the model (cutoff 0.60) |
+|---|---|---|
+| At a current wildfire | 111 | 4.5 % |
+| At a current prescribed burn | 190 | 0 % |
+| Near no reported incident | 10,996 | 0.3 % |
+
+- **Fires:** FIRMS saw 12 current wildfires this week. The model kept 1 of them: the Mud Fire in Idaho (1,000 acres).
+  It dropped Foot Creek (WY, 683 acres), Red Hill (MS, 519), Hunts Fork (VA, 313) and 8 others.
+- **It is not a pipeline bug; it is the season.** The archive shows the same thing. On mapped California fires the
+  model keeps 93–99 % of detections from June to October, but 1 % in November 2025, 0 % in January 2025, and 2–3 % in May.
+- **The month input does most of the work.** As a diagnostic only, the same live detections scored with `month` set to
+  August keep 88 % of wildfire detections (8 of 12 fires), but also 62 % of prescribed-burn detections and 47 % of the rest.
+  The model learned "it's California fire season", not how an off-season wildfire looks different from a farm or prescribed burn.
+- **Outside California** the land-cover and burn-history inputs are blank, and most of this week's fires are in other states.
+
+**Conclusion:** the model is reliable for California's June–October season, which is what it was trained and tested on.
+It is not reliable for fires burning right now (November, mostly outside California). Fixing that needs retraining on
+all months and more regions, with prescribed burns as explicit negatives (WFIGS tags them).
+
 ## Small fires (v2): `small_fires.py`
 
 The first model caught every big fire but almost none of the small ones (0 of 69 fires with fewer
