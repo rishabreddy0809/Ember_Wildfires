@@ -130,7 +130,7 @@ private struct MLSummary: View {
                     .font(.mono(10)).foregroundStyle(Theme.textSecondary)
             }
             Slider(value: Binding(get: { Double(store.mlThreshold) }, set: { store.mlThreshold = Float($0) }),
-                   in: 0.3...0.8, step: 0.05)
+                   in: 0.2...0.8, step: 0.05)
                 .controlSize(.small)
                 .tint(Theme.ember)
             HStack {
@@ -140,7 +140,7 @@ private struct MLSummary: View {
             }
             .font(.system(size: 9.5)).foregroundStyle(Theme.textTertiary)
         }
-        .help("Probability needed to call a detection a wildfire. The default (0.60) was chosen on 2020 data. On 2021, 0.40 caught 142 of 168 fires and removed 90% of non-wildfire detections; 0.60 caught 129 and removed 92%.")
+        .help("Probability needed to call a detection a wildfire. The default (0.30) was chosen by cross-validation on 2020-2023. On 2024, never seen in training, 0.30 caught 186 of 205 fires and removed 86% of non-wildfire detections; 0.60 caught 168 and removed 94%.")
     }
 
     private func stat(_ label: String, _ n: Int, _ color: Color) -> some View {

@@ -1,0 +1,917 @@
+{
+  "chosen": {
+    "mb": 1.0,
+    "thr": 0.3,
+    "score": 0.8695297845599889,
+    "in_recall": 0.991927268533646,
+    "in_fire_recall": 0.9485148514851485,
+    "in_removed": 0.7405792404466575,
+    "off_recall": 0.8547528517110267,
+    "off_fire_recall": 0.8880597014925373,
+    "off_removed": 0.9009653448156122,
+    "trees": 100,
+    "depth": 14,
+    "leaf": 30,
+    "max_features": 0.4
+  },
+  "train_years": [
+    2020,
+    2021,
+    2022,
+    2023
+  ],
+  "test_years": [
+    2024,
+    2025
+  ],
+  "features": [
+    "is_viirs",
+    "bright_mir",
+    "bright_tir",
+    "delta_t",
+    "frp",
+    "log_frp",
+    "frp_density",
+    "pixel_area_km2",
+    "conf_class",
+    "is_day",
+    "hour_utc",
+    "month",
+    "n_same_2km_0d",
+    "n_other_2km_prev1d",
+    "maxfrp_other_2km_prev1d",
+    "cross_sensor_confirmed",
+    "n_all_5km_0d",
+    "maxfrp_all_5km_0d",
+    "sumfrp_all_5km_0d",
+    "n_all_5km_prevday",
+    "n_night_5km_prev1d",
+    "n_day_5km_prev1d",
+    "other_sensor_present",
+    "lc_forest",
+    "lc_shrub",
+    "lc_grass",
+    "lc_ag",
+    "lc_dev",
+    "hist_months"
+  ],
+  "feature_importance": {
+    "hist_months": 0.2863,
+    "lc_ag": 0.1147,
+    "maxfrp_all_5km_0d": 0.0807,
+    "lc_shrub": 0.078,
+    "bright_tir": 0.0551,
+    "sumfrp_all_5km_0d": 0.0537,
+    "hour_utc": 0.0374,
+    "lc_forest": 0.0356,
+    "n_night_5km_prev1d": 0.0241,
+    "n_day_5km_prev1d": 0.0238,
+    "n_all_5km_prevday": 0.0231,
+    "log_frp": 0.0207,
+    "lc_dev": 0.02,
+    "delta_t": 0.0177,
+    "frp": 0.0176,
+    "n_all_5km_0d": 0.0169,
+    "pixel_area_km2": 0.0168,
+    "frp_density": 0.0166,
+    "lc_grass": 0.016,
+    "bright_mir": 0.013,
+    "n_same_2km_0d": 0.0127,
+    "is_day": 0.0074,
+    "maxfrp_other_2km_prev1d": 0.0056,
+    "n_other_2km_prev1d": 0.004,
+    "conf_class": 0.001,
+    "other_sensor_present": 0.0006,
+    "cross_sensor_confirmed": 0.0004,
+    "is_viirs": 0.0003,
+    "month": 0.0
+  },
+  "test": {
+    "2024": {
+      "v4": {
+        "all": {
+          "accuracy": 0.9383635076362901,
+          "recall": 0.9886519720060174,
+          "precision": 0.9180103853511888,
+          "nonfire_removed": 0.8568170970992205,
+          "fires_caught": 186,
+          "fires": 205,
+          "fire_recall": 0.9073170731707317,
+          "by_size": {
+            "1-4": "83/100",
+            "5-19": "57/59",
+            "20-99": "14/14",
+            "100-+": "32/32"
+          },
+          "confusion": {
+            "tn": 16157,
+            "fp": 2700,
+            "fn": 347,
+            "tp": 30231
+          }
+        },
+        "in_season": {
+          "accuracy": 0.9550329811765967,
+          "recall": 0.991815348789425,
+          "precision": 0.9526973684210527,
+          "nonfire_removed": 0.8223155813666131,
+          "fires_caught": 158,
+          "fires": 167,
+          "fire_recall": 0.9461077844311377,
+          "by_size": {
+            "1-4": "68/76",
+            "5-19": "49/50",
+            "20-99": "12/12",
+            "100-+": "29/29"
+          },
+          "confusion": {
+            "tn": 6655,
+            "fp": 1438,
+            "fn": 239,
+            "tp": 28962
+          }
+        },
+        "off_season": {
+          "accuracy": 0.8871592125854543,
+          "recall": 0.9215686274509803,
+          "precision": 0.50138285262742,
+          "nonfire_removed": 0.8827573392790784,
+          "fires_caught": 33,
+          "fires": 43,
+          "fire_recall": 0.7674418604651163,
+          "by_size": {
+            "1-4": "18/27",
+            "5-19": "9/10",
+            "20-99": "2/2",
+            "100-+": "4/4"
+          },
+          "confusion": {
+            "tn": 9502,
+            "fp": 1262,
+            "fn": 108,
+            "tp": 1269
+          }
+        },
+        "auc": 0.968543476400745
+      },
+      "v3": {
+        "all": {
+          "accuracy": 0.9358753919287954,
+          "recall": 0.9408725227287592,
+          "precision": 0.9547988849064117,
+          "nonfire_removed": 0.9277721800922735,
+          "fires_caught": 161,
+          "fires": 205,
+          "fire_recall": 0.7853658536585366,
+          "by_size": {
+            "1-4": "65/100",
+            "5-19": "51/59",
+            "20-99": "13/14",
+            "100-+": "32/32"
+          },
+          "confusion": {
+            "tn": 17495,
+            "fp": 1362,
+            "fn": 1808,
+            "tp": 28770
+          }
+        },
+        "in_season": {
+          "accuracy": 0.937174880677857,
+          "recall": 0.9644875175507688,
+          "precision": 0.9556837461825586,
+          "nonfire_removed": 0.838625973063141,
+          "fires_caught": 152,
+          "fires": 167,
+          "fire_recall": 0.9101796407185628,
+          "by_size": {
+            "1-4": "63/76",
+            "5-19": "48/50",
+            "20-99": "12/12",
+            "100-+": "29/29"
+          },
+          "confusion": {
+            "tn": 6787,
+            "fp": 1306,
+            "fn": 1037,
+            "tp": 28164
+          }
+        },
+        "off_season": {
+          "accuracy": 0.9318836998599785,
+          "recall": 0.4400871459694989,
+          "precision": 0.9154078549848943,
+          "nonfire_removed": 0.9947974730583427,
+          "fires_caught": 11,
+          "fires": 43,
+          "fire_recall": 0.2558139534883721,
+          "by_size": {
+            "1-4": "2/27",
+            "5-19": "4/10",
+            "20-99": "1/2",
+            "100-+": "4/4"
+          },
+          "confusion": {
+            "tn": 10708,
+            "fp": 56,
+            "fn": 771,
+            "tp": 606
+          }
+        },
+        "auc": 0.967356691093245
+      },
+      "v4_by_month": {
+        "1": {
+          "fire_detections": 0,
+          "kept": null,
+          "fires": 0,
+          "fires_caught": 0,
+          "nonfire_removed": 0.9109792284866469
+        },
+        "2": {
+          "fire_detections": 1,
+          "kept": 1.0,
+          "fires": 1,
+          "fires_caught": 1,
+          "nonfire_removed": 0.9352112676056338
+        },
+        "3": {
+          "fire_detections": 0,
+          "kept": null,
+          "fires": 0,
+          "fires_caught": 0,
+          "nonfire_removed": 0.9106933019976499
+        },
+        "4": {
+          "fire_detections": 25,
+          "kept": 0.8,
+          "fires": 5,
+          "fires_caught": 3,
+          "nonfire_removed": 0.8948964123294593
+        },
+        "5": {
+          "fire_detections": 123,
+          "kept": 0.7967479674796748,
+          "fires": 23,
+          "fires_caught": 18,
+          "nonfire_removed": 0.8306845965770171
+        },
+        "6": {
+          "fire_detections": 2697,
+          "kept": 0.9862810530218762,
+          "fires": 48,
+          "fires_caught": 44,
+          "nonfire_removed": 0.7678803641092328
+        },
+        "7": {
+          "fire_detections": 11548,
+          "kept": 0.9921198475926567,
+          "fires": 69,
+          "fires_caught": 68,
+          "nonfire_removed": 0.719332679097154
+        },
+        "8": {
+          "fire_detections": 6498,
+          "kept": 0.9950754078177901,
+          "fires": 27,
+          "fires_caught": 26,
+          "nonfire_removed": 0.8517786561264822
+        },
+        "9": {
+          "fire_detections": 6626,
+          "kept": 0.99185028674917,
+          "fires": 24,
+          "fires_caught": 24,
+          "nonfire_removed": 0.8086092715231789
+        },
+        "10": {
+          "fire_detections": 1832,
+          "kept": 0.986353711790393,
+          "fires": 24,
+          "fires_caught": 21,
+          "nonfire_removed": 0.8879585326953748
+        },
+        "11": {
+          "fire_detections": 1098,
+          "kept": 0.9335154826958105,
+          "fires": 11,
+          "fires_caught": 10,
+          "nonfire_removed": 0.8658843252305113
+        },
+        "12": {
+          "fire_detections": 130,
+          "kept": 0.9615384615384616,
+          "fires": 3,
+          "fires_caught": 1,
+          "nonfire_removed": 0.8738805970149254
+        }
+      },
+      "v3_by_month": {
+        "1": {
+          "fire_detections": 0,
+          "kept": null,
+          "fires": 0,
+          "fires_caught": 0,
+          "nonfire_removed": 1.0
+        },
+        "2": {
+          "fire_detections": 1,
+          "kept": 0.0,
+          "fires": 1,
+          "fires_caught": 0,
+          "nonfire_removed": 0.995774647887324
+        },
+        "3": {
+          "fire_detections": 0,
+          "kept": null,
+          "fires": 0,
+          "fires_caught": 0,
+          "nonfire_removed": 0.9964747356051704
+        },
+        "4": {
+          "fire_detections": 25,
+          "kept": 0.08,
+          "fires": 5,
+          "fires_caught": 1,
+          "nonfire_removed": 0.9984840828701365
+        },
+        "5": {
+          "fire_detections": 123,
+          "kept": 0.024390243902439025,
+          "fires": 23,
+          "fires_caught": 2,
+          "nonfire_removed": 0.991442542787286
+        },
+        "6": {
+          "fire_detections": 2697,
+          "kept": 0.9744160177975528,
+          "fires": 48,
+          "fires_caught": 43,
+          "nonfire_removed": 0.7899869960988296
+        },
+        "7": {
+          "fire_detections": 11548,
+          "kept": 0.9628507100796675,
+          "fires": 69,
+          "fires_caught": 66,
+          "nonfire_removed": 0.7988223748773308
+        },
+        "8": {
+          "fire_detections": 6498,
+          "kept": 0.9878424130501693,
+          "fires": 27,
+          "fires_caught": 25,
+          "nonfire_removed": 0.8774703557312253
+        },
+        "9": {
+          "fire_detections": 6626,
+          "kept": 0.9329912466042861,
+          "fires": 24,
+          "fires_caught": 22,
+          "nonfire_removed": 0.8682119205298013
+        },
+        "10": {
+          "fire_detections": 1832,
+          "kept": 0.9912663755458515,
+          "fires": 24,
+          "fires_caught": 21,
+          "nonfire_removed": 0.8433014354066986
+        },
+        "11": {
+          "fire_detections": 1098,
+          "kept": 0.46174863387978143,
+          "fires": 11,
+          "fires_caught": 7,
+          "nonfire_removed": 0.9920368818105616
+        },
+        "12": {
+          "fire_detections": 130,
+          "kept": 0.7230769230769231,
+          "fires": 3,
+          "fires_caught": 1,
+          "nonfire_removed": 0.9917910447761195
+        }
+      },
+      "named_fires_v4": {
+        "Mountain": {
+          "detections": 556,
+          "kept": 0.9118705035971223,
+          "median_prob": 0.6131169053420068
+        },
+        "Franklin": {
+          "detections": 125,
+          "kept": 1.0,
+          "median_prob": 0.746452133247875
+        },
+        "Park": {
+          "detections": 6347,
+          "kept": 0.9955884669922798,
+          "median_prob": 0.7699566230157263
+        }
+      },
+      "named_fires_v3": {
+        "Mountain": {
+          "detections": 556,
+          "kept": 0.5881294964028777,
+          "median_prob": 0.6595145171042531
+        },
+        "Franklin": {
+          "detections": 125,
+          "kept": 0.752,
+          "median_prob": 0.702979251393117
+        },
+        "Park": {
+          "detections": 6347,
+          "kept": 0.9697494879470616,
+          "median_prob": 0.908144611120224
+        }
+      },
+      "v4_MODIS_only": {
+        "accuracy": 0.9138661140643302,
+        "recall": 0.9817295980511571,
+        "precision": 0.9090909090909091,
+        "nonfire_removed": 0.7210107303565247,
+        "fires_caught": 133,
+        "fires": 140,
+        "fire_recall": 0.95,
+        "by_size": {
+          "1-4": "83/90",
+          "5-19": "17/17",
+          "20-99": "18/18",
+          "100-+": "15/15"
+        },
+        "confusion": {
+          "tn": 2083,
+          "fp": 806,
+          "fn": 150,
+          "tp": 8060
+        }
+      },
+      "v4_VIIRS_only": {
+        "accuracy": 0.9391955342237062,
+        "recall": 0.9867668097281831,
+        "precision": 0.9155846849462812,
+        "nonfire_removed": 0.8725576152304609,
+        "fires_caught": 142,
+        "fires": 159,
+        "fire_recall": 0.8930817610062893,
+        "by_size": {
+          "1-4": "56/71",
+          "5-19": "45/47",
+          "20-99": "12/12",
+          "100-+": "29/29"
+        },
+        "confusion": {
+          "tn": 13933,
+          "fp": 2035,
+          "fn": 296,
+          "tp": 22072
+        }
+      },
+      "v4_no_static": {
+        "accuracy": 0.894649539799737,
+        "recall": 0.9844005494146119,
+        "precision": 0.864176619200735,
+        "nonfire_removed": 0.7491117356949674,
+        "fires_caught": 181,
+        "fires": 205,
+        "fire_recall": 0.8829268292682927,
+        "by_size": {
+          "1-4": "78/100",
+          "5-19": "57/59",
+          "20-99": "14/14",
+          "100-+": "32/32"
+        },
+        "confusion": {
+          "tn": 14126,
+          "fp": 4731,
+          "fn": 477,
+          "tp": 30101
+        }
+      }
+    },
+    "2025": {
+      "v4": {
+        "all": {
+          "accuracy": 0.9284728974921418,
+          "recall": 0.9894787567263673,
+          "precision": 0.8946661341273011,
+          "nonfire_removed": 0.8498369480821989,
+          "fires_caught": 168,
+          "fires": 185,
+          "fire_recall": 0.9081081081081082,
+          "by_size": {
+            "1-4": "82/97",
+            "5-19": "41/43",
+            "20-99": "26/26",
+            "100-+": "19/19"
+          },
+          "confusion": {
+            "tn": 16418,
+            "fp": 2901,
+            "fn": 262,
+            "tp": 24640
+          }
+        },
+        "in_season": {
+          "accuracy": 0.9478340142485735,
+          "recall": 0.9916674214292184,
+          "precision": 0.9414850165527323,
+          "nonfire_removed": 0.8193762441937624,
+          "fires_caught": 128,
+          "fires": 139,
+          "fire_recall": 0.920863309352518,
+          "by_size": {
+            "1-4": "63/73",
+            "5-19": "31/32",
+            "20-99": "19/19",
+            "100-+": "15/15"
+          },
+          "confusion": {
+            "tn": 6174,
+            "fp": 1361,
+            "fn": 184,
+            "tp": 21898
+          }
+        },
+        "off_season": {
+          "accuracy": 0.8892084360449192,
+          "recall": 0.9723404255319149,
+          "precision": 0.6403549743110696,
+          "nonfire_removed": 0.8693143245078072,
+          "fires_caught": 42,
+          "fires": 50,
+          "fire_recall": 0.84,
+          "by_size": {
+            "1-4": "23/30",
+            "5-19": "8/9",
+            "20-99": "7/7",
+            "100-+": "4/4"
+          },
+          "confusion": {
+            "tn": 10244,
+            "fp": 1540,
+            "fn": 78,
+            "tp": 2742
+          }
+        },
+        "auc": 0.971793878403258
+      },
+      "v3": {
+        "all": {
+          "accuracy": 0.8694059383550802,
+          "recall": 0.8280459400851338,
+          "precision": 0.9324831547053769,
+          "nonfire_removed": 0.9227185672136239,
+          "fires_caught": 128,
+          "fires": 185,
+          "fire_recall": 0.6918918918918919,
+          "by_size": {
+            "1-4": "61/97",
+            "5-19": "33/43",
+            "20-99": "19/26",
+            "100-+": "15/19"
+          },
+          "confusion": {
+            "tn": 17826,
+            "fp": 1493,
+            "fn": 4282,
+            "tp": 20620
+          }
+        },
+        "in_season": {
+          "accuracy": 0.9008002160921093,
+          "recall": 0.9333393714337469,
+          "precision": 0.933593042217793,
+          "nonfire_removed": 0.8054412740544128,
+          "fires_caught": 121,
+          "fires": 139,
+          "fire_recall": 0.8705035971223022,
+          "by_size": {
+            "1-4": "58/73",
+            "5-19": "30/32",
+            "20-99": "18/19",
+            "100-+": "15/15"
+          },
+          "confusion": {
+            "tn": 6069,
+            "fp": 1466,
+            "fn": 1472,
+            "tp": 20610
+          }
+        },
+        "off_season": {
+          "accuracy": 0.80573815393043,
+          "recall": 0.0035460992907801418,
+          "precision": 0.2702702702702703,
+          "nonfire_removed": 0.9977087576374746,
+          "fires_caught": 7,
+          "fires": 50,
+          "fire_recall": 0.14,
+          "by_size": {
+            "1-4": "5/30",
+            "5-19": "1/9",
+            "20-99": "1/7",
+            "100-+": "0/4"
+          },
+          "confusion": {
+            "tn": 11757,
+            "fp": 27,
+            "fn": 2810,
+            "tp": 10
+          }
+        },
+        "auc": 0.9589262781369597
+      },
+      "v4_by_month": {
+        "1": {
+          "fire_detections": 2424,
+          "kept": 0.9855610561056105,
+          "fires": 10,
+          "fires_caught": 9,
+          "nonfire_removed": 0.8917594654788419
+        },
+        "2": {
+          "fire_detections": 0,
+          "kept": null,
+          "fires": 0,
+          "fires_caught": 0,
+          "nonfire_removed": 0.9075
+        },
+        "3": {
+          "fire_detections": 17,
+          "kept": 0.8823529411764706,
+          "fires": 1,
+          "fires_caught": 1,
+          "nonfire_removed": 0.8947772657450077
+        },
+        "4": {
+          "fire_detections": 10,
+          "kept": 0.6,
+          "fires": 4,
+          "fires_caught": 4,
+          "nonfire_removed": 0.8680020544427324
+        },
+        "5": {
+          "fire_detections": 224,
+          "kept": 0.8973214285714286,
+          "fires": 28,
+          "fires_caught": 22,
+          "nonfire_removed": 0.829225352112676
+        },
+        "6": {
+          "fire_detections": 299,
+          "kept": 0.959866220735786,
+          "fires": 44,
+          "fires_caught": 36,
+          "nonfire_removed": 0.8567026194144838
+        },
+        "7": {
+          "fire_detections": 5395,
+          "kept": 0.9929564411492122,
+          "fires": 29,
+          "fires_caught": 28,
+          "nonfire_removed": 0.8613659531090724
+        },
+        "8": {
+          "fire_detections": 8826,
+          "kept": 0.9920688873782008,
+          "fires": 42,
+          "fires_caught": 42,
+          "nonfire_removed": 0.8001644736842105
+        },
+        "9": {
+          "fire_detections": 7557,
+          "kept": 0.9916633584755855,
+          "fires": 34,
+          "fires_caught": 32,
+          "nonfire_removed": 0.7930805056553559
+        },
+        "10": {
+          "fire_detections": 5,
+          "kept": 0.8,
+          "fires": 3,
+          "fires_caught": 2,
+          "nonfire_removed": 0.8088293259755617
+        },
+        "11": {
+          "fire_detections": 143,
+          "kept": 0.916083916083916,
+          "fires": 6,
+          "fires_caught": 6,
+          "nonfire_removed": 0.8399570354457573
+        },
+        "12": {
+          "fire_detections": 2,
+          "kept": 0.0,
+          "fires": 1,
+          "fires_caught": 0,
+          "nonfire_removed": 0.8667979002624672
+        }
+      },
+      "v3_by_month": {
+        "1": {
+          "fire_detections": 2424,
+          "kept": 0.00041254125412541255,
+          "fires": 10,
+          "fires_caught": 1,
+          "nonfire_removed": 1.0
+        },
+        "2": {
+          "fire_detections": 0,
+          "kept": null,
+          "fires": 0,
+          "fires_caught": 0,
+          "nonfire_removed": 1.0
+        },
+        "3": {
+          "fire_detections": 17,
+          "kept": 0.058823529411764705,
+          "fires": 1,
+          "fires_caught": 1,
+          "nonfire_removed": 0.9961597542242704
+        },
+        "4": {
+          "fire_detections": 10,
+          "kept": 0.0,
+          "fires": 4,
+          "fires_caught": 0,
+          "nonfire_removed": 0.9964047252182845
+        },
+        "5": {
+          "fire_detections": 224,
+          "kept": 0.026785714285714284,
+          "fires": 28,
+          "fires_caught": 3,
+          "nonfire_removed": 0.9964788732394366
+        },
+        "6": {
+          "fire_detections": 299,
+          "kept": 0.9331103678929766,
+          "fires": 44,
+          "fires_caught": 33,
+          "nonfire_removed": 0.8828967642526965
+        },
+        "7": {
+          "fire_detections": 5395,
+          "kept": 0.9623725671918443,
+          "fires": 29,
+          "fires_caught": 26,
+          "nonfire_removed": 0.8878695208970439
+        },
+        "8": {
+          "fire_detections": 8826,
+          "kept": 0.9571719918422842,
+          "fires": 42,
+          "fires_caught": 40,
+          "nonfire_removed": 0.834703947368421
+        },
+        "9": {
+          "fire_detections": 7557,
+          "kept": 0.8848749503771338,
+          "fires": 34,
+          "fires_caught": 32,
+          "nonfire_removed": 0.854956753160346
+        },
+        "10": {
+          "fire_detections": 5,
+          "kept": 0.8,
+          "fires": 3,
+          "fires_caught": 2,
+          "nonfire_removed": 0.6905794245171463
+        },
+        "11": {
+          "fire_detections": 143,
+          "kept": 0.013986013986013986,
+          "fires": 6,
+          "fires_caught": 2,
+          "nonfire_removed": 0.9983888292158969
+        },
+        "12": {
+          "fire_detections": 2,
+          "kept": 0.0,
+          "fires": 1,
+          "fires_caught": 0,
+          "nonfire_removed": 0.9960629921259843
+        }
+      },
+      "named_fires_v4": {
+        "Palisades": {
+          "detections": 1341,
+          "kept": 0.9970171513795675,
+          "median_prob": 0.7862541455142171
+        },
+        "Eaton": {
+          "detections": 679,
+          "kept": 0.9926362297496318,
+          "median_prob": 0.7299211359936438
+        },
+        "Hughes": {
+          "detections": 184,
+          "kept": 0.8858695652173914,
+          "median_prob": 0.5293263767489342
+        },
+        "Border 2": {
+          "detections": 175,
+          "kept": 1.0,
+          "median_prob": 0.8786945592855436
+        },
+        "Kenneth": {
+          "detections": 1,
+          "kept": 1.0,
+          "median_prob": 0.4886677606104234
+        }
+      },
+      "named_fires_v3": {
+        "Palisades": {
+          "detections": 1341,
+          "kept": 0.0,
+          "median_prob": 0.3702840912528336
+        },
+        "Eaton": {
+          "detections": 679,
+          "kept": 0.0,
+          "median_prob": 0.32064522050321104
+        },
+        "Hughes": {
+          "detections": 184,
+          "kept": 0.0,
+          "median_prob": 0.27757098838686944
+        },
+        "Border 2": {
+          "detections": 175,
+          "kept": 0.0,
+          "median_prob": 0.37928360332269223
+        },
+        "Kenneth": {
+          "detections": 1,
+          "kept": 0.0,
+          "median_prob": 0.19742366307415068
+        }
+      },
+      "v4_MODIS_only": {
+        "accuracy": 0.8582022759237949,
+        "recall": 0.9600393700787402,
+        "precision": 0.8433339097354314,
+        "nonfire_removed": 0.6694636993797884,
+        "fires_caught": 109,
+        "fires": 112,
+        "fire_recall": 0.9732142857142857,
+        "by_size": {
+          "1-4": "68/71",
+          "5-19": "20/20",
+          "20-99": "11/11",
+          "100-+": "10/10"
+        },
+        "confusion": {
+          "tn": 1835,
+          "fp": 906,
+          "fn": 203,
+          "tp": 4877
+        }
+      },
+      "v4_VIIRS_only": {
+        "accuracy": 0.9324450549450549,
+        "recall": 0.983906770255272,
+        "precision": 0.9011227648662385,
+        "nonfire_removed": 0.8709132585354084,
+        "fires_caught": 143,
+        "fires": 160,
+        "fire_recall": 0.89375,
+        "by_size": {
+          "1-4": "62/78",
+          "5-19": "38/39",
+          "20-99": "26/26",
+          "100-+": "17/17"
+        },
+        "confusion": {
+          "tn": 14438,
+          "fp": 2140,
+          "fn": 319,
+          "tp": 19503
+        }
+      },
+      "v4_no_static": {
+        "accuracy": 0.8924945161800955,
+        "recall": 0.9851015982651996,
+        "precision": 0.8484125337206889,
+        "nonfire_removed": 0.773124902945287,
+        "fires_caught": 161,
+        "fires": 185,
+        "fire_recall": 0.8702702702702703,
+        "by_size": {
+          "1-4": "75/97",
+          "5-19": "41/43",
+          "20-99": "26/26",
+          "100-+": "19/19"
+        },
+        "confusion": {
+          "tn": 14936,
+          "fp": 4383,
+          "fn": 371,
+          "tp": 24531
+        }
+      }
+    }
+  }
+}
