@@ -1,8 +1,9 @@
 # Harmonized MODIS + VIIRS wildfire classifier
 
-A random forest trained on **California 2020** and tested on **California 2021**. It classifies each
-satellite fire detection as part of a mapped wildfire or not (farm and prescribed burns, industrial
-heat sources, false alarms).
+A random forest that classifies each satellite fire detection as part of a mapped wildfire or not (farm
+and prescribed burns, industrial heat sources, false alarms). The app ships **v4**, trained on California
+2020–2023 across all months and tested on 2024 and 2025 (see "v4: the year-round model"). The sections
+from here to v3 describe how the earlier models were built on 2020 and tested on 2021.
 
 ```
 uv run --project ml python ml/train_rf.py     # ~90 s; writes ml/outputs/results.json
@@ -46,6 +47,57 @@ uv run --project ml python ml/train_rf.py     # ~90 s; writes ml/outputs/results
 - The context features are the strongest signals: cluster size, cross-sensor confirmation and
   persistence.
 
+## v4: the year-round model (`train_v4.py`), shipped in the app
+
+```
+uv run --project ml python ml/fetch_data.py 2020 2021 2022 2023
+uv run --project ml python ml/train_v4.py      # ~25 min on 4 cores; writes MyApp/ML/ember_rf.bin
+```
+
+**Why.** v3 learned the calendar instead of the fire. On mapped California fires it kept 93–99 % of detections from
+June to October, but 0 % of the January 2025 LA fires (Palisades, Eaton, Hughes), 1 % in November 2025, and 1 of 12
+wildfires burning in the US during the live test week. With `month` forced to August, the same live detections passed,
+prescribed burns included.
+
+**What changed** (same 29 features, same file format, so the app's Swift code only changes the default cutoff):
+- Training data: California **2020, 2021, 2022 and 2023, every month** (v3: 2020 only). 1.23 M rows with the
+  single-sensor copies; 134 off-season fires.
+- `month` is held constant during training, so no tree splits on it (its importance is exactly 0). The app still
+  passes the month, and it has no effect.
+- **Month-balanced weights:** within each month, wildfire and non-wildfire detections get the same total weight, on top
+  of v3's 1 / (fire size) weighting, so winter fires aren't drowned out by winter farm burns.
+- Weighting strength and cutoff were chosen by **leave-one-year-out CV over 2020–2023** (`outputs/v4_cv.csv`), scoring
+  in-season (Jun–Oct) and off-season (Nov–May) equally. Chosen: full balancing, cutoff **0.30**. Held-out-year CV: fire
+  recall 0.95 in season and 0.89 off season, with 74 % and 90 % of non-wildfire detections removed.
+- **2024 and 2025 were never used for training or selection.** They are the test years. Caveat: the decision to
+  retrain came from seeing v3 fail on them.
+
+| Never-seen test year | v3 (cutoff 0.60) | **v4 (cutoff 0.30)** | v4 at 0.60 |
+|---|---|---|---|
+| 2024 fires caught | 161 / 205 | **186 / 205** | 168 / 205 |
+| 2024 off-season fires (Nov–May) | 11 / 43 | **33 / 43** | |
+| 2024 in season: recall · precision | 0.964 · 0.956 | **0.992** · 0.953 | |
+| 2024 non-wildfire removed (all year) | 92.8 % | 85.7 % | 94.4 % |
+| 2025 fires caught | 128 / 185 | **168 / 185** | 149 / 185 |
+| 2025 off-season fires | 7 / 50 | **42 / 50** | |
+| 2025 in season: recall · precision | 0.933 · 0.934 | **0.992** · **0.941** | |
+| 2025 non-wildfire removed (all year) | 92.3 % | 85.0 % | 94.6 % |
+| Palisades · Eaton · Hughes detections kept | 0 % · 0 % · 0 % | **100 % · 99 % · 89 %** | |
+| Mountain Fire (Nov 2024) detections kept | 59 % | **91 %** | |
+
+- **In season, nothing got meaningfully worse:** precision moved 0.956 → 0.953 (2024) and 0.934 → 0.941 (2025), and recall went up.
+- **Off season, more false alarms get through:** only 50 % (2024) and 64 % (2025) of the off-season detections v4 keeps
+  are inside a mapped fire. Winter farm burns and fires are harder to tell apart.
+- **At v3's old 0.60 cutoff, v4 beats v3 on every metric in both years** (more fires, more false alarms removed, higher
+  precision). The app's Sensitivity slider (0.20–0.80) moves along this trade-off; 0.30 stays the default because it
+  was chosen without looking at the test years.
+- Top features: burn history 0.29, agricultural land 0.12, peak FRP within 5 km 0.08, shrub 0.08, thermal-IR
+  brightness 0.06. `month` 0.
+- Swift parity: the regenerated `outputs/swift_golden.csv` (18,943 detections, 14–17 Aug 2021) matches the Python
+  pipeline to 7e-9 with no decision changes. Run `sh ml/swift_tests/run.sh` on a Mac to check the Swift side.
+- The stress test and v3 sections below describe v3. 2022 and 2023 are now training years, so the stress test's
+  "never seen" rows no longer apply to v4.
+
 ## Harmonized daily fire record (`harmonize.py`)
 
 ```
@@ -54,9 +106,9 @@ uv run --project ml python ml/harmonize.py 2024 2025      # ~30 s
 ```
 
 1. **Load** MODIS (Terra + Aqua, 1 km) and VIIRS (Suomi NPP, 375 m) for California on the shared schema above.
-2. **Drop false alarms** with the shipped v3 model (`MyApp/ML/ember_rf.bin` + `ember_static.bin`, cutoff 0.60),
-   run exactly as the app runs it. On the 18,943-row Swift golden file this path reproduces the model's
-   probabilities to 5e-9 with no decision changes.
+2. **Drop false alarms** with the shipped model (v4: `MyApp/ML/ember_rf.bin` + `ember_static.bin`, cutoff from
+   `outputs/swift_threshold.txt`), run exactly as the app runs it. On the 18,943-row Swift golden file this path
+   reproduces the model's probabilities to 7e-9 with no decision changes.
 3. **Match across sensors.** A MODIS and a VIIRS detection are the same fire if:
    - **distance:** their pixel footprints touch (centers within the sum of the two half-diagonals, 1–5 km).
      MODIS pixels grow from 1 km at nadir to about 2 × 4.8 km at the scan edge, so a fixed radius fails at one end.
@@ -89,36 +141,37 @@ uv run --project ml python ml/plot_validation.py        # writes outputs/harmoni
 ![MODIS and VIIRS agreement before and after harmonization](outputs/harmonized/agreement.png)
 
 **Before** = raw FIRMS overlaid: every detection, compared on the same ~1 km cell and UTC day.
-**After** = the harmonized record: false alarms dropped, then matched by footprint distance, a 6 h window and confidence.
-Neither year was used to train or tune the classifier.
+**After** = the harmonized record (v4 classifier): false alarms dropped, then matched by footprint distance, a 6 h
+window and confidence. Neither year was used to train or tune the classifier.
 
 | California | Match rate before → after | Fire-map overlap (cell-days both sensors report) before → after |
 |---|---|---|
-| 2024 | 40.1 % → **76.1 %** | 12.8 % → **23.6 %** |
-| 2025 | 41.8 % → **82.9 %** | 13.7 % → **29.8 %** |
+| 2024 | 40.1 % → **73.3 %** | 12.8 % → **21.5 %** |
+| 2025 | 41.8 % → **81.1 %** | 13.7 % → **27.3 %** |
 
 How each part contributes (2024): the matching rules alone take the match rate from 40 % to 57 %.
-Dropping false alarms takes it to 76 %. The time window matters most: a ±1 h window gives 38 %, ±6 h 76 %, ±12 h 81 %.
-The confidence rule changes almost nothing (76.2 % vs 76.1 %), because the classifier has already removed most low-confidence detections.
+Dropping false alarms takes it to 73 %. The time window matters most: ±1 h gives 36 %, ±6 h 73 %, ±12 h 79 %.
+The confidence rule changes almost nothing (73.4 % vs 73.3 %), because the classifier has already removed most
+low-confidence detections.
 
 Checked against CAL FIRE perimeters:
 
 | | 2024 | 2025 |
 |---|---|---|
 | Raw detections inside a mapped fire | 61.9 % | 56.3 % |
-| Harmonized detections inside a mapped fire | **95.5 %** | **93.2 %** |
-| Mapped-fire detections the classifier keeps | 94.1 % | 82.8 % |
-| Fires ≥ 1,000 acres seen: raw MODIS / raw VIIRS / harmonized | 50 / 43 / **49** of 55 | 31 / 32 / 25 of 35 |
+| Harmonized detections inside a mapped fire | **91.8 %** | **89.5 %** |
+| Mapped-fire detections the classifier keeps | 98.9 % | 98.9 % |
+| Fires ≥ 1,000 acres seen: raw MODIS / raw VIIRS / harmonized | 50 / 43 / **50** of 55 | 31 / 32 / **33** of 35 |
+| Fires < 100 acres seen: raw MODIS / raw VIIRS / harmonized | 54 / 73 / **84** of 394 | 40 / 89 / 88 of 408 |
+
+With v3 the record was cleaner (95.5 % and 93.2 % inside mapped fires) but lost 8 large 2025 fires, all of them in
+January, including Palisades and Eaton. With v4 it loses none: every large fire that either sensor saw is in the record.
 
 ### Known weak spots
-- **Winter fires are dropped.** In 2025 the classifier rejects every detection of eight fires of 1,000+ acres,
-  all in January: Palisades (23,449 acres), Eaton (14,056), Hughes (10,397), Border 2, Jaw, Pack, Springs, Kenneth.
-  Their median wildfire probability is about 0.35, below the 0.60 cutoff. The model was trained on 2020, which had
-  almost no large January fires, and `month` is one of its strongest features. This is why harmonized 2025 sees
-  fewer large fires than raw VIIRS. The classifier is unchanged here; fixing it means retraining.
+- **Off-season false alarms.** v4 keeps winter fires, but about half of what it keeps from November to May is not a
+  mapped fire (winter farm and prescribed burns). In the record those cells look like real fires.
 - **Small fires are missed.** Of the 2024 fires under 100 acres, raw MODIS saw 54 of 394, raw VIIRS 73 and the
-  harmonized record 70. Most small fires are below what either sensor resolves, and the classifier drops some of
-  the ones that are seen (99 seen by either sensor → 70 kept).
+  harmonized record 84. Most small fires are below what either sensor resolves.
 - **Part of the gain is built in.** One of the classifier's features is "the other sensor saw fire within 2 km
   yesterday or today", so filtering favors detections the other sensor confirms. The perimeter checks above are
   the independent evidence that the filtered record is cleaner, not just more self-consistent.
@@ -128,8 +181,8 @@ Checked against CAL FIRE perimeters:
   starts after about 14:00 is first seen at night.
 - **Only Suomi NPP VIIRS.** NOAA-20 and NOAA-21 have no yearly FIRMS files; adding them needs a FIRMS key
   (`fetch_data.py --noaa20`) and would add two more passes a day.
-- The daily-count correlation (in `results.json`) is not a reliable third metric: in 2024 it is 0.32 both before
-  and after, because VIIRS outage days dominate it.
+- The daily-count correlation (in `results.json`) is not a reliable third metric: in 2024 it is 0.32 before and
+  0.37 after, because VIIRS outage days dominate it.
 
 ## Case study: Park Fire 2024 (`case_study.py`)
 
@@ -144,12 +197,10 @@ The Park Fire (Butte and Tehama counties, 429,603 acres, California's 4th larges
 - **Suomi NPP VIIRS has no California data from 24 to 28 July**, the fire's five fastest days. Raw VIIRS
   alone first sees it at 13:03 PDT on 29 July. Aqua MODIS saw it at **15:33 PDT on 24 July**, so the harmonized
   record starts on the first afternoon.
-- In the first week (24–30 July) raw VIIRS alone marks 170 ~1 km cells as burning. The harmonized record marks **1,201**.
-- Across the fire, the harmonized record marks 1,406 cells: 1,021 that VIIRS alone never saw, and 54 that MODIS alone never saw.
+- In the first week (24–30 July) raw VIIRS alone marks 170 ~1 km cells as burning. The harmonized record marks **1,270**.
+- Across the fire, the harmonized record marks 1,475 cells: 1,090 that VIIRS alone never saw, and 54 that MODIS alone never saw.
 - On 10, 12, 15 and 17 August only VIIRS still detects the smouldering edges; MODIS's 1 km pixels see nothing.
 - Fire days covered: raw MODIS 19, raw VIIRS 18, harmonized **23**.
-- Raw MODIS alone touches 1,423 cells, slightly more than the harmonized record's MODIS cells: the classifier dropped
-  a few low-probability MODIS edge pixels.
 
 ## Live test, 6–13 Nov 2026 (`live_test.py`)
 
@@ -157,28 +208,29 @@ The Park Fire (Butte and Tehama counties, 429,603 acres, California's 4th larges
 uv run --project ml python ml/live_test.py     # last 7 days of FIRMS NRT + NIFC current incidents, no key
 ```
 
-The shipped model was run, unchanged, on the last 7 days of near-real-time FIRMS detections for the contiguous US:
+The shipped model scored the last 7 days of near-real-time FIRMS detections for the contiguous US:
 11,297 detections from MODIS and NOAA-20 VIIRS, the app's pair. The answer key is NIFC's WFIGS current incidents:
-136 wildfires (WF) and 176 prescribed burns (RX), plus 42 mapped perimeters.
+136 wildfires (WF) and 176 prescribed burns (RX), plus 42 mapped perimeters. Results for v3 are kept in
+`outputs/live/live_test_v3.json`.
 
-| Detections | Count | Kept by the model (cutoff 0.60) |
-|---|---|---|
-| At a current wildfire | 111 | 4.5 % |
-| At a current prescribed burn | 190 | 0 % |
-| Near no reported incident | 10,996 | 0.3 % |
+| Detections | Count | Kept by v3 (0.60) | Kept by **v4** (0.30) |
+|---|---|---|---|
+| At a current wildfire | 111 | 4.5 % | **81 %** |
+| At a current prescribed burn | 190 | 0 % | 42 % |
+| Near no reported incident | 10,996 | 0.3 % | 35 % |
 
-- **Fires:** FIRMS saw 12 current wildfires this week. The model kept 1 of them: the Mud Fire in Idaho (1,000 acres).
-  It dropped Foot Creek (WY, 683 acres), Red Hill (MS, 519), Hunts Fork (VA, 313) and 8 others.
-- **It is not a pipeline bug; it is the season.** The archive shows the same thing. On mapped California fires the
-  model keeps 93–99 % of detections from June to October, but 1 % in November 2025, 0 % in January 2025, and 2–3 % in May.
-- **The month input does most of the work.** As a diagnostic only, the same live detections scored with `month` set to
-  August keep 88 % of wildfire detections (8 of 12 fires), but also 62 % of prescribed-burn detections and 47 % of the rest.
-  The model learned "it's California fire season", not how an off-season wildfire looks different from a farm or prescribed burn.
-- **Outside California** the land-cover and burn-history inputs are blank, and most of this week's fires are in other states.
+- **Wildfires:** FIRMS saw 12 current wildfires this week. v3 caught 1 (Mud, Idaho). **v4 catches 7**, including all
+  three seen in the last 24 hours: Mud (ID, 1,000 acres), Red Hill (MS, 519) and a small fire in California. It still
+  misses Hunts Fork (VA, 313 acres), Campbell–Glassman Way (TN, 380) and three others; most had a single detection.
+- **Why v3 failed:** it learned the season. In the archive it kept 1 % of mapped-fire detections in November 2025 and
+  0 % in January 2025. Rescored with `month` set to August, the same live detections passed, prescribed burns included.
+- **v4's cost:** it also keeps 20 of 36 prescribed burns and about a third of detections near no reported incident.
+  Outside California the land-cover and burn-history inputs (v4's strongest) are blank, so it has less to go on.
+  Inside California it keeps 30 % of unreported detections.
 
-**Conclusion:** the model is reliable for California's June–October season, which is what it was trained and tested on.
-It is not reliable for fires burning right now (November, mostly outside California). Fixing that needs retraining on
-all months and more regions, with prescribed burns as explicit negatives (WFIGS tags them).
+**Conclusion:** v4 now finds most fires burning right now, but outside California and outside fire season it raises
+many false alarms. Next steps: prescribed burns as explicit negatives (WFIGS tags them), and land-cover and
+burn-history grids beyond California.
 
 ## Small fires (v2): `small_fires.py`
 
@@ -205,7 +257,7 @@ Scored against the old exact-perimeter labels, v2 still catches 93 of 131 fires 
 ones), but removes only 58.6 % of "non-wildfire" detections, because those labels count
 fire-edge pixels as non-wildfire.
 
-## v3: the best model (`build_static_grids.py`, `train_v3.py`), shipped in the app
+## v3 (`build_static_grids.py`, `train_v3.py`), shipped before v4
 
 New inputs:
 - **Land cover:** fractions of forest, shrub, grass, agriculture and developed land in each

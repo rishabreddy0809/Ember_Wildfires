@@ -2,9 +2,9 @@
 
 **Live site: <https://emberwildfires.vercel.app>** · NASA Space Apps Challenge 2026, *Harmonization of MODIS and VIIRS Hot Spots* (solo entry)
 
-Ember merges every MODIS and VIIRS hot spot over California into **one daily harmonized fire record**. A Random Forest
-drops false alarms, matching detections are paired across the two sensors, and every ~1 km fire cell gets a `source`
-column: `MODIS`, `VIIRS` or `MODIS+VIIRS`.
+Ember merges every MODIS and VIIRS hot spot over California into **one daily harmonized fire record**. A year-round
+Random Forest drops false alarms, matching detections are paired across the two sensors, and every ~1 km fire cell
+gets a `source` column: `MODIS`, `VIIRS` or `MODIS+VIIRS`.
 
 ## Results
 
@@ -13,15 +13,17 @@ Neither year below was used to train or tune anything.
 | California | MODIS–VIIRS match rate | Fire-map overlap (cell-days both report) | Detections inside a CAL FIRE perimeter |
 |---|---|---|---|
 | 2024, raw | 40.1 % | 12.8 % | 61.9 % |
-| **2024, harmonized** | **76.1 %** | **23.6 %** | **95.5 %** |
+| **2024, harmonized** | **73.3 %** | **21.5 %** | **91.8 %** |
 | 2025, raw | 41.8 % | 13.7 % | 56.3 % |
-| **2025, harmonized** | **82.9 %** | **29.8 %** | **93.2 %** |
+| **2025, harmonized** | **81.1 %** | **27.3 %** | **89.5 %** |
+
+Every fire of 1,000+ acres that either sensor saw is in the harmonized record: 50 of 55 in 2024, 33 of 35 in 2025.
 
 ![MODIS and VIIRS agree about twice as often after harmonization](ml/outputs/harmonized/agreement.png)
 
 **Case study, Park Fire 2024 (429,603 acres):**
 - Suomi NPP VIIRS has no California data from 24 to 28 July, the fire's first five days, so VIIRS alone first sees it on 29 July.
-- The harmonized record has it from Aqua MODIS at **15:33 PDT on 24 July**. In the first week it marks **1,201** burning cells; raw VIIRS alone marks 170.
+- The harmonized record has it from Aqua MODIS at **15:33 PDT on 24 July**. In the first week it marks **1,270** burning cells; raw VIIRS alone marks 170.
 - VIIRS then keeps the smouldering edges after MODIS loses them.
 
 ![Park Fire 2024 in the harmonized record](ml/outputs/harmonized/park_fire.png)
@@ -30,10 +32,24 @@ Neither year below was used to train or tune anything.
 
 ![Harmonized fire calendar on the website](docs/screenshots/calendar.png)
 
+**The classifier works year-round now.** The first version, trained on one summer (2020), had learned the calendar.
+It dropped every detection of January 2025's Palisades, Eaton and Hughes fires, and caught 1 of 12 US wildfires burning
+during 6–13 Nov 2026. v4 is trained on 2020–2023 across all months, and the month input is switched off. On 2024 and
+2025, which it never saw:
+
+| | v3 (one summer) | **v4 (year-round)** |
+|---|---|---|
+| Fires caught, 2024 · 2025 | 161/205 · 128/185 | **186/205 · 168/185** |
+| Off-season fires (Nov–May) caught | 18 of 93 | **75 of 93** |
+| Palisades · Eaton detections kept | 0 % · 0 % | **100 % · 99 %** |
+| In-season precision, 2024 · 2025 | 0.956 · 0.934 | 0.953 · 0.941 |
+| Live, 6–13 Nov 2026: current US wildfires caught | 1 of 12 | **7 of 12** |
+| Live: prescribed-burn detections kept | 0 % | 42 % |
+
 **Known weak spots**
-- **Winter fires are dropped.** The classifier rejects every detection of January 2025's Palisades, Eaton and Hughes
-  fires, and of five more. It was trained on 2020, which had almost no large January fires.
-- **Small fires are missed.** Of 394 fires under 100 acres in 2024, the harmonized record sees 70.
+- **Off-season false alarms.** About half of what v4 keeps from November to May is a farm or prescribed burn. Outside
+  California, without land-cover and burn-history data, it keeps a third of detections near no reported fire.
+- **Small fires are missed.** Of 394 fires under 100 acres in 2024, the harmonized record sees 84.
 - **Part of the agreement gain is built in.** The classifier uses cross-sensor confirmation as an input, so the CAL FIRE
   perimeter check is the independent evidence.
 - **Outages and timing.** On VIIRS outage days the record is MODIS alone, and no satellite passes between about 14:00 and 22:30 local time.
@@ -64,6 +80,21 @@ uv run --project ml python ml/case_study.py
 ```
 ```bash
 uv run --project ml python ml/export_site_data.py 2024 2025
+```
+
+Test the model on fires burning right now (FIRMS near-real-time + NIFC current incidents, no key):
+
+```bash
+uv run --project ml python ml/live_test.py
+```
+
+Retrain the classifier (about 25 minutes):
+
+```bash
+uv run --project ml python ml/fetch_data.py 2020 2021 2022 2023
+```
+```bash
+uv run --project ml python ml/train_v4.py
 ```
 
 ![The Ember website](docs/screenshots/hero.jpg)
@@ -102,11 +133,11 @@ Settings (⌘,) shows whether the key was found.
 
 The **Show** picker at the top of the sidebar switches between MODIS only, VIIRS only, both
 (raw), and **ML**. ML mode shows both sensors and hides detections that a random forest trained on
-harmonized MODIS + VIIRS data judges are not wildfire: farm and prescribed burns, industrial heat,
-and false alarms. On California 2021 it removed 92% of non-wildfire detections at 99% precision, and caught
-126 of 168 mapped fires, including 49 of 77 fires with fewer than 5 detections. On 2022 and
-2023, which it never saw, accuracy was 93% and 90%; guessing "wildfire" every time gets 45%. It
-keeps working if MODIS or VIIRS goes offline. A
+harmonized MODIS + VIIRS data (v4, California 2020–2023, all months) judges are not wildfire: farm and prescribed burns, industrial heat,
+and false alarms. On California 2024 and 2025, which it never saw, it kept 99% of real fire detections, caught
+186 of 205 and 168 of 185 mapped fires, and removed 86% and 85% of non-wildfire detections. It works in every
+month, including January fires like Palisades and Eaton, and keeps working if MODIS or VIIRS goes offline
+(VIIRS alone: 142 of 159 fires in 2024). Off season it lets more farm and prescribed burns through. A
 **Sensitivity** slider trades catching more small fires against removing more false alarms. The inspector shows each detection's wildfire probability. The filter changes
 only the map; the cache and CSV export are unchanged. See `ml/README.md` for how the model was built.
 

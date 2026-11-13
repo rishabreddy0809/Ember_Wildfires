@@ -3,7 +3,7 @@
 1. Download the last 7 days of NASA FIRMS near-real-time detections for the contiguous US:
    MODIS C6.1 (Terra + Aqua) and NOAA-20 VIIRS 375 m, the same pair the Ember app uses.
    Public files, no key needed.
-2. Score every detection with the shipped v3 model (MyApp/ML/ember_rf.bin, cutoff 0.60), exactly as
+2. Score every detection with the shipped model (MyApp/ML/ember_rf.bin, cutoff from swift_threshold.txt), exactly as
    the app runs it. The land-cover / burn-history grid only covers California; elsewhere those
    inputs are blank, as in the app outside California.
 3. Answer key: NIFC's WFIGS current incidents (interagency, all agencies), each tagged WF
@@ -31,7 +31,7 @@ import pandas as pd
 from sklearn.neighbors import BallTree
 
 from fetch_data import get
-from harmonize import classify, load_static
+from harmonize import THRESHOLD, classify, load_static
 from small_fires import BUFFER_M
 from train_rf import EARTH_KM, OUT, ROOT, load_sensor
 
@@ -144,7 +144,7 @@ def main() -> None:
         return {"detections": int(m.sum()), "kept_by_model": float(det.loc[m, "is_wildfire"].mean()) if m.any() else None}
 
     res = {"run_utc": now.strftime("%Y-%m-%d %H:%M"), "data_from_utc": f"{det.time.min():%Y-%m-%d %H:%M}",
-           "data_to_utc": f"{latest:%Y-%m-%d %H:%M}", "cutoff": 0.60,
+           "data_to_utc": f"{latest:%Y-%m-%d %H:%M}", "cutoff": THRESHOLD,
            "incidents": {"wildfires": int((inc.kind == "WF").sum()), "prescribed": int((inc.kind == "RX").sum()),
                          "mapped_perimeters": int(len(per))},
            "detections": {k: share(det.truth == k) for k in ("WF", "RX", "none")}}

@@ -6,7 +6,7 @@
         "raw": 49435,
         "raw_modis": 11099,
         "raw_viirs": 38336,
-        "kept_by_classifier": 30132
+        "kept_by_classifier": 32931
       },
       "match_rate": {
         "before_raw_overlay": {
@@ -22,10 +22,10 @@
           "n_detections": 49435
         },
         "after_harmonized": {
-          "all": 0.7614828089738483,
-          "modis_seen_by_viirs": 0.6132934281082429,
-          "viirs_seen_by_modis": 0.8152218152218152,
-          "n_detections": 30132
+          "all": 0.7331389875800917,
+          "modis_seen_by_viirs": 0.588495575221239,
+          "viirs_seen_by_modis": 0.7860015756520297,
+          "n_detections": 32931
         }
       },
       "cell_day_overlap": {
@@ -38,18 +38,18 @@
           "daily_count_pearson_r": 0.3157463304976491
         },
         "after_harmonized": {
-          "jaccard": 0.23582513439496908,
-          "cell_days_both": 2325,
-          "cell_days_either": 9859,
-          "cell_days_modis_only": 3480,
-          "cell_days_viirs_only": 4054,
-          "daily_count_pearson_r": 0.3188244706180967
+          "jaccard": 0.21464357915091853,
+          "cell_days_both": 2442,
+          "cell_days_either": 11377,
+          "cell_days_modis_only": 4053,
+          "cell_days_viirs_only": 4882,
+          "daily_count_pearson_r": 0.36861027945307884
         }
       },
       "classifier_vs_perimeters": {
-        "perimeter_detections_kept": 0.9408725227287592,
-        "non_perimeter_detections_removed": 0.9277721800922735,
-        "kept_inside_perimeters": 0.9547988849064117,
+        "perimeter_detections_kept": 0.9886519720060174,
+        "non_perimeter_detections_removed": 0.8568170970992205,
+        "kept_inside_perimeters": 0.9180103853511888,
         "raw_inside_perimeters": 0.6185496105997775
       },
       "fires_seen": {
@@ -58,21 +58,21 @@
           "raw_modis": 54,
           "raw_viirs": 73,
           "raw_either": 99,
-          "harmonized": 70
+          "harmonized": 84
         },
         "100-1,000 acres": {
           "fires": 104,
           "raw_modis": 43,
           "raw_viirs": 49,
           "raw_either": 65,
-          "harmonized": 50
+          "harmonized": 61
         },
         "1,000-10,000 acres": {
           "fires": 36,
           "raw_modis": 31,
           "raw_viirs": 26,
           "raw_either": 31,
-          "harmonized": 30
+          "harmonized": 31
         },
         "10,000+ acres": {
           "fires": 19,
@@ -86,18 +86,10 @@
           "raw_modis": 147,
           "raw_viirs": 165,
           "raw_either": 214,
-          "harmonized": 169
+          "harmonized": 195
         }
       },
-      "large_fires_dropped_by_classifier": [
-        {
-          "fire": "School",
-          "acres": 1479,
-          "start": "2024-05-02",
-          "raw_detections": 25,
-          "median_wildfire_prob": 0.098
-        }
-      ],
+      "large_fires_dropped_by_classifier": [],
       "sensor_gaps": {
         "MODIS": {
           "days_without_any_detection": 55,
@@ -125,79 +117,79 @@
         {
           "radius_km": 1.0,
           "window_h": 1.0,
-          "match_rate": 0.3152
+          "match_rate": 0.3008
         },
         {
           "radius_km": 1.0,
           "window_h": 6.0,
-          "match_rate": 0.6986
+          "match_rate": 0.6699
         },
         {
           "radius_km": 1.0,
           "window_h": 12.0,
-          "match_rate": 0.7662
+          "match_rate": 0.7383
         },
         {
           "radius_km": 2.0,
           "window_h": 1.0,
-          "match_rate": 0.402
+          "match_rate": 0.3855
         },
         {
           "radius_km": 2.0,
           "window_h": 6.0,
-          "match_rate": 0.7865
+          "match_rate": 0.7588
         },
         {
           "radius_km": 2.0,
           "window_h": 12.0,
-          "match_rate": 0.8281
+          "match_rate": 0.8041
         },
         {
           "radius_km": 4.0,
           "window_h": 1.0,
-          "match_rate": 0.4428
+          "match_rate": 0.4284
         },
         {
           "radius_km": 4.0,
           "window_h": 6.0,
-          "match_rate": 0.824
+          "match_rate": 0.8014
         },
         {
           "radius_km": 4.0,
           "window_h": 12.0,
-          "match_rate": 0.8519
+          "match_rate": 0.8304
         },
         {
           "radius_km": "footprint",
           "window_h": 1.0,
-          "match_rate": 0.3757
+          "match_rate": 0.3604
         },
         {
           "radius_km": "footprint",
           "window_h": 6.0,
-          "match_rate": 0.7615
+          "match_rate": 0.7331
         },
         {
           "radius_km": "footprint",
           "window_h": 12.0,
-          "match_rate": 0.8126
+          "match_rate": 0.7876
         },
         {
           "radius_km": "footprint",
           "window_h": 6.0,
           "confidence_rule": false,
-          "match_rate": 0.762
+          "match_rate": 0.7337
         }
       ],
       "harmonized_record": {
-        "cell_days": 9859,
-        "days_with_fire": 185,
+        "cell_days": 11377,
+        "days_with_fire": 302,
         "by_source": {
-          "VIIRS": 4054,
-          "MODIS": 3480,
-          "MODIS+VIIRS": 2325
+          "VIIRS": 4882,
+          "MODIS": 4053,
+          "MODIS+VIIRS": 2442
         },
-        "cross_confirmed": 6028
+        "cross_confirmed": 6493
       }
     },
     "2025": {
@@ -205,7 +197,7 @@
         "raw": 44221,
         "raw_modis": 7821,
         "raw_viirs": 36400,
-        "kept_by_classifier": 22113
+        "kept_by_classifier": 27541
       },
       "match_rate": {
         "before_raw_overlay": {
@@ -221,10 +213,10 @@
           "n_detections": 44221
         },
         "after_harmonized": {
-          "all": 0.8288337177226066,
-          "modis_seen_by_viirs": 0.8986114172360591,
-          "viirs_seen_by_modis": 0.8108215748748293,
-          "n_detections": 22113
+          "all": 0.8106822555462765,
+          "modis_seen_by_viirs": 0.8538607704266713,
+          "viirs_seen_by_modis": 0.7991908789996323,
+          "n_detections": 27541
         }
       },
       "cell_day_overlap": {
@@ -237,18 +229,18 @@
           "daily_count_pearson_r": 0.8462914802953406
         },
         "after_harmonized": {
-          "jaccard": 0.2975232198142415,
-          "cell_days_both": 1922,
-          "cell_days_either": 6460,
-          "cell_days_modis_only": 1374,
-          "cell_days_viirs_only": 3164,
-          "daily_count_pearson_r": 0.900094342867753
+          "jaccard": 0.2734375,
+          "cell_days_both": 2310,
+          "cell_days_either": 8448,
+          "cell_days_modis_only": 2001,
+          "cell_days_viirs_only": 4137,
+          "daily_count_pearson_r": 0.9113087400406242
         }
       },
       "classifier_vs_perimeters": {
-        "perimeter_detections_kept": 0.8280459400851338,
-        "non_perimeter_detections_removed": 0.9227185672136239,
-        "kept_inside_perimeters": 0.9324831547053769,
+        "perimeter_detections_kept": 0.9894787567263673,
+        "non_perimeter_detections_removed": 0.8498369480821989,
+        "kept_inside_perimeters": 0.8946661341273011,
         "raw_inside_perimeters": 0.5631261165509599
       },
       "fires_seen": {
@@ -257,95 +249,38 @@
           "raw_modis": 40,
           "raw_viirs": 89,
           "raw_either": 107,
-          "harmonized": 68
+          "harmonized": 88
         },
         "100-1,000 acres": {
           "fires": 78,
           "raw_modis": 45,
           "raw_viirs": 47,
           "raw_either": 55,
-          "harmonized": 40
+          "harmonized": 54
         },
         "1,000-10,000 acres": {
           "fires": 25,
           "raw_modis": 21,
           "raw_viirs": 22,
           "raw_either": 23,
-          "harmonized": 18
+          "harmonized": 23
         },
         "10,000+ acres": {
           "fires": 10,
           "raw_modis": 10,
           "raw_viirs": 10,
           "raw_either": 10,
-          "harmonized": 7
+          "harmonized": 10
         },
         "all": {
           "fires": 521,
           "raw_modis": 116,
           "raw_viirs": 168,
           "raw_either": 195,
-          "harmonized": 133
+          "harmonized": 175
         }
       },
-      "large_fires_dropped_by_classifier": [
-        {
-          "fire": "Palisades",
-          "acres": 23449,
-          "start": "2025-01-07",
-          "raw_detections": 1341,
-          "median_wildfire_prob": 0.37
-        },
-        {
-          "fire": "Eaton",
-          "acres": 14056,
-          "start": "2025-01-08",
-          "raw_detections": 679,
-          "median_wildfire_prob": 0.321
-        },
-        {
-          "fire": "Hughes",
-          "acres": 10397,
-          "start": "2025-01-22",
-          "raw_detections": 184,
-          "median_wildfire_prob": 0.278
-        },
-        {
-          "fire": "Border 2",
-          "acres": 6630,
-          "start": "2025-01-23",
-          "raw_detections": 175,
-          "median_wildfire_prob": 0.379
-        },
-        {
-          "fire": "Jaw",
-          "acres": 4327,
-          "start": "2025-05-19",
-          "raw_detections": 89,
-          "median_wildfire_prob": 0.404
-        },
-        {
-          "fire": "Pack",
-          "acres": 1974,
-          "start": "2025-11-13",
-          "raw_detections": 71,
-          "median_wildfire_prob": 0.489
-        },
-        {
-          "fire": "Springs",
-          "acres": 1817,
-          "start": "2025-05-06",
-          "raw_detections": 4,
-          "median_wildfire_prob": 0.229
-        },
-        {
-          "fire": "Kenneth",
-          "acres": 1012,
-          "start": "2025-01-09",
-          "raw_detections": 1,
-          "median_wildfire_prob": 0.197
-        }
-      ],
+      "large_fires_dropped_by_classifier": [],
       "sensor_gaps": {
         "MODIS": {
           "days_without_any_detection": 51,
@@ -366,79 +301,79 @@
         {
           "radius_km": 1.0,
           "window_h": 1.0,
-          "match_rate": 0.1841
+          "match_rate": 0.1827
         },
         {
           "radius_km": 1.0,
           "window_h": 6.0,
-          "match_rate": 0.7513
+          "match_rate": 0.7325
         },
         {
           "radius_km": 1.0,
           "window_h": 12.0,
-          "match_rate": 0.8455
+          "match_rate": 0.8223
         },
         {
           "radius_km": 2.0,
           "window_h": 1.0,
-          "match_rate": 0.2423
+          "match_rate": 0.2371
         },
         {
           "radius_km": 2.0,
           "window_h": 6.0,
-          "match_rate": 0.8605
+          "match_rate": 0.8405
         },
         {
           "radius_km": 2.0,
           "window_h": 12.0,
-          "match_rate": 0.9091
+          "match_rate": 0.8877
         },
         {
           "radius_km": 4.0,
           "window_h": 1.0,
-          "match_rate": 0.2731
+          "match_rate": 0.2635
         },
         {
           "radius_km": 4.0,
           "window_h": 6.0,
-          "match_rate": 0.8987
+          "match_rate": 0.8795
         },
         {
           "radius_km": 4.0,
           "window_h": 12.0,
-          "match_rate": 0.9334
+          "match_rate": 0.9117
         },
         {
           "radius_km": "footprint",
           "window_h": 1.0,
-          "match_rate": 0.2306
+          "match_rate": 0.2264
         },
         {
           "radius_km": "footprint",
           "window_h": 6.0,
-          "match_rate": 0.8288
+          "match_rate": 0.8107
         },
         {
           "radius_km": "footprint",
           "window_h": 12.0,
-          "match_rate": 0.8879
+          "match_rate": 0.8687
         },
         {
           "radius_km": "footprint",
           "window_h": 6.0,
           "confidence_rule": false,
-          "match_rate": 0.8295
+          "match_rate": 0.8113
         }
       ],
       "harmonized_record": {
-        "cell_days": 6460,
-        "days_with_fire": 172,
+        "cell_days": 8448,
+        "days_with_fire": 320,
         "by_source": {
-          "VIIRS": 3164,
-          "MODIS+VIIRS": 1922,
-          "MODIS": 1374
+          "VIIRS": 4137,
+          "MODIS+VIIRS": 2310,
+          "MODIS": 2001
         },
-        "cross_confirmed": 4870
+        "cross_confirmed": 5925
       }
     }
   }

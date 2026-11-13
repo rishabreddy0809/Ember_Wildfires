@@ -234,15 +234,16 @@
     <div>
       <p class="kicker">How we test it</p>
       <h3>Scored against fires that really happened</h3>
-      <p>The model trains on one fire season and is scored on a different one it has never seen, using mapped fire perimeters as the answer key.</p>
-      <p class="status-pill">Tested on 2021: 99.2% precision, 97.1% recall, 92.4% of false alarms removed</p>
+      <p>The model trains on four years of California fires, every month, and is scored on two years it has never seen, using mapped fire perimeters as the answer key.</p>
+      <p class="status-pill">Tested on 2024 and 2025: 98.9% of real fire detections kept, 186 of 205 and 168 of 185 fires caught</p>
     </div>
     <ol class="mini-steps">
-      <li>MODIS + VIIRS detections, all of California, 2020 to 2025</li>
+      <li>MODIS + VIIRS detections, all of California, every month, 2020 to 2025</li>
       <li>Answer key: CAL FIRE fire perimeters, with one pixel of tolerance</li>
-      <li>Train and tune on 2020 only; test once on 2021: <b>99.2%</b> precision (of everything flagged as fire, how much really was), <b>97.1%</b> recall (of real fire detections, how many were kept)</li>
-      <li>Years it never saw: <b>93%</b> accuracy on 2022 and <b>90%</b> on 2023, where guessing “fire” every time gets 45%</li>
-      <li>2024 and 2025 run through the harmonized record: <b>95%</b> and <b>93%</b> of what it keeps lies inside a mapped fire, versus 62% and 56% of raw detections</li>
+      <li>Train and tune on 2020–2023, one year held out at a time; test once on 2024 and 2025, which it never saw</li>
+      <li>In fire season (Jun–Oct): <b>99.2%</b> recall (of real fire detections, how many were kept) and <b>94–95%</b> precision (of everything flagged as fire, how much really was)</li>
+      <li>Off season: <b>75 of 93</b> fires caught, including Palisades and Eaton in January 2025; the first model, trained on one summer, caught 18</li>
+      <li>Live, 6–13 Nov 2026: <b>7 of 12</b> wildfires burning in the US caught, but 42% of prescribed-burn detections kept too</li>
     </ol>
   </div>
 </section>
@@ -257,32 +258,32 @@
 
   <div class="stat-grid">
     <article class="stat-card reveal">
-      <p class="stat-num"><span>40→76</span><small>%</small></p>
-      <p class="stat-label">of detections confirmed by the other sensor, before and after harmonization (California 2024; 42→83% in 2025)</p>
+      <p class="stat-num"><span>40→73</span><small>%</small></p>
+      <p class="stat-label">of detections confirmed by the other sensor, before and after harmonization (California 2024; 42→81% in 2025)</p>
       <p class="stat-src">Match rate · ml/outputs/harmonized/results.json</p>
     </article>
     <article class="stat-card reveal">
-      <p class="stat-num"><span>13→24</span><small>%</small></p>
-      <p class="stat-label">of ~1 km fire cell-days that both sensors report (2024; 14→30% in 2025)</p>
+      <p class="stat-num"><span>13→21</span><small>%</small></p>
+      <p class="stat-label">of ~1 km fire cell-days that both sensors report (2024; 14→27% in 2025)</p>
       <p class="stat-src">Fire-map overlap · results.json</p>
     </article>
     <article class="stat-card reveal">
-      <p class="stat-num"><span>62→96</span><small>%</small></p>
+      <p class="stat-num"><span>62→92</span><small>%</small></p>
       <p class="stat-label">of detections that fall inside a CAL FIRE fire perimeter, raw vs harmonized (2024)</p>
       <p class="stat-src">Checked against CAL FIRE FRAP perimeters</p>
     </article>
   </div>
 
   <figure class="fig card fig-img reveal">
-    <img src="img/agreement.png" width="2000" height="920" loading="lazy" alt="Bar chart. Match rate between MODIS and VIIRS rises from 40% to 76% in California 2024 and from 42% to 83% in 2025 after harmonization. Fire-map overlap rises from 13% to 24% in 2024 and from 14% to 30% in 2025.">
-    <figcaption><b>Before</b> = raw FIRMS products overlaid on the same ~1 km cell and day. <b>After</b> = the harmonized record. The matching rules alone take 2024 from 40% to 57%; dropping false alarms takes it to 76%.</figcaption>
+    <img src="img/agreement.png" width="2000" height="920" loading="lazy" alt="Bar chart. Match rate between MODIS and VIIRS rises from 40% to 73% in California 2024 and from 42% to 81% in 2025 after harmonization. Fire-map overlap rises from 13% to 21% in 2024 and from 14% to 27% in 2025.">
+    <figcaption><b>Before</b> = raw FIRMS products overlaid on the same ~1 km cell and day. <b>After</b> = the harmonized record. The matching rules alone take 2024 from 40% to 57%; dropping false alarms takes it to 73%.</figcaption>
     <details class="table-view">
       <summary>Show as a table</summary>
       <table>
         <thead><tr><th>California</th><th>Match rate before</th><th>after</th><th>Fire-map overlap before</th><th>after</th></tr></thead>
         <tbody>
-          <tr><td>2024</td><td>40.1%</td><td>76.1%</td><td>12.8%</td><td>23.6%</td></tr>
-          <tr><td>2025</td><td>41.8%</td><td>82.9%</td><td>13.7%</td><td>29.8%</td></tr>
+          <tr><td>2024</td><td>40.1%</td><td>73.3%</td><td>12.8%</td><td>21.5%</td></tr>
+          <tr><td>2025</td><td>41.8%</td><td>81.1%</td><td>13.7%</td><td>27.3%</td></tr>
         </tbody>
       </table>
     </details>
@@ -296,7 +297,7 @@
       <p>The Park Fire burned 429,603 acres in Butte and Tehama counties, California’s fourth-largest fire. Suomi NPP VIIRS has <b>no California data from 24 to 28 July</b>, the fire’s fastest days.</p>
       <ul class="case-facts">
         <li><b>15:33 PDT, 24 July:</b> Aqua MODIS sees the fire. Raw VIIRS alone first sees it on <b>29 July</b>.</li>
-        <li><b>First week:</b> raw VIIRS marks 170 ~1 km cells as burning; the harmonized record marks <b>1,201</b>.</li>
+        <li><b>First week:</b> raw VIIRS marks 170 ~1 km cells as burning; the harmonized record marks <b>1,270</b>.</li>
         <li><b>The tail:</b> on 10, 12, 15 and 17 August only VIIRS’s 375 m pixels still find the smouldering edges.</li>
         <li><b>Fire days covered:</b> MODIS 19, VIIRS 18, harmonized <b>23</b>.</li>
       </ul>
@@ -342,8 +343,8 @@
     <p class="kicker">Known weak spots</p>
     <h3>What the harmonized record still gets wrong</h3>
     <ul>
-      <li><b>Winter fires are dropped.</b> The classifier rejects every detection of eight January 2025 fires, including <b>Palisades</b> (23,449 acres), <b>Eaton</b> (14,056) and <b>Hughes</b> (10,397). It learned from 2020, which had almost no large January fires. Fixing this means retraining.</li>
-      <li><b>Small fires are missed.</b> Of 394 fires under 100 acres in 2024, raw MODIS saw 54, raw VIIRS 73 and the harmonized record 70.</li>
+      <li><b>Off-season false alarms.</b> The year-round classifier now keeps winter fires like Palisades and Eaton, but about half of what it keeps from November to May is a farm or prescribed burn, not a mapped wildfire. Outside California, where it has no land-cover or burn-history data, it is less selective still.</li>
+      <li><b>Small fires are missed.</b> Of 394 fires under 100 acres in 2024, raw MODIS saw 54, raw VIIRS 73 and the harmonized record 84.</li>
       <li><b>Part of the agreement gain is built in.</b> One classifier input is “did the other sensor see fire nearby?”, so the perimeter check is the independent evidence.</li>
       <li><b>Outages and timing.</b> On VIIRS outage days the record is MODIS alone. No satellite passes between about 14:00 and 22:30, so evening fires are first seen at night.</li>
     </ul>
@@ -461,7 +462,8 @@
   <ol class="roadmap">
     <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Ember viewer + classifier</h3><p>macOS app that maps every MODIS and VIIRS detection, with the Random Forest running on-device to hide false alarms.</p></li>
     <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Harmonized fire record</h3><p>One daily California record from both sensors, validated against CAL FIRE perimeters for 2024 and 2025.</p></li>
-    <li class="next reveal"><span class="rm-tag">Next</span><h3>Winter fires</h3><p>Retrain with January fires such as Palisades and Eaton so the classifier stops dropping them.</p></li>
+    <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Year-round classifier</h3><p>Retrained on 2020–2023 across all months; it now keeps January fires such as Palisades and Eaton.</p></li>
+    <li class="next reveal"><span class="rm-tag">Next</span><h3>Fewer winter false alarms</h3><p>Teach the model prescribed burns explicitly and extend land-cover and burn-history data beyond California.</p></li>
     <li class="next reveal"><span class="rm-tag">Next</span><h3>More satellites, more places</h3><p>Add NOAA-20 and NOAA-21 VIIRS for extra daily passes, then test outside California.</p></li>
   </ol>
 </section>

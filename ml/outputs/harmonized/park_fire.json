@@ -28,18 +28,18 @@
   "cells_seen": {
     "raw_modis": 1423,
     "raw_viirs": 385,
-    "harmonized": 1406
+    "harmonized": 1475
   },
   "cells_by_source": {
-    "MODIS": 1022,
-    "MODIS+VIIRS": 329,
-    "VIIRS": 55
+    "MODIS": 1090,
+    "MODIS+VIIRS": 331,
+    "VIIRS": 54
   },
-  "cells_only_harmonized_vs_viirs": 1021,
+  "cells_only_harmonized_vs_viirs": 1090,
   "cells_only_harmonized_vs_modis": 54,
   "first_week_cells": {
     "raw_viirs": 170,
-    "harmonized": 1201
+    "harmonized": 1270
   },
   "late_days_viirs_only": [
     "2024-08-10",
@@ -49,44 +49,44 @@
   ],
   "daily_cells": {
     "2024-07-24": {
-      "MODIS": 90,
+      "MODIS": 98,
       "MODIS+VIIRS": 0,
       "VIIRS": 0
     },
     "2024-07-25": {
-      "MODIS": 523,
+      "MODIS": 542,
       "MODIS+VIIRS": 0,
       "VIIRS": 0
     },
     "2024-07-26": {
-      "MODIS": 426,
+      "MODIS": 479,
       "MODIS+VIIRS": 0,
       "VIIRS": 0
     },
     "2024-07-27": {
-      "MODIS": 90,
+      "MODIS": 104,
       "MODIS+VIIRS": 0,
       "VIIRS": 0
     },
     "2024-07-28": {
-      "MODIS": 159,
+      "MODIS": 161,
       "MODIS+VIIRS": 0,
       "VIIRS": 0
     },
     "2024-07-29": {
-      "MODIS": 45,
+      "MODIS": 49,
       "MODIS+VIIRS": 34,
       "VIIRS": 43
     },
     "2024-07-30": {
-      "MODIS": 31,
-      "MODIS+VIIRS": 83,
+      "MODIS": 30,
+      "MODIS+VIIRS": 84,
       "VIIRS": 68
     },
     "2024-07-31": {
       "MODIS": 7,
       "MODIS+VIIRS": 18,
-      "VIIRS": 76
+      "VIIRS": 77
     },
     "2024-08-01": {
       "MODIS": 24,
@@ -95,8 +95,8 @@
     },
     "2024-08-02": {
       "MODIS": 0,
-      "MODIS+VIIRS": 18,
-      "VIIRS": 52
+      "MODIS+VIIRS": 19,
+      "VIIRS": 56
     },
     "2024-08-03": {
       "MODIS": 0,
@@ -104,23 +104,23 @@
       "VIIRS": 0
     },
     "2024-08-04": {
-      "MODIS": 8,
+      "MODIS": 9,
       "MODIS+VIIRS": 21,
       "VIIRS": 4
     },
     "2024-08-05": {
-      "MODIS": 42,
+      "MODIS": 46,
       "MODIS+VIIRS": 23,
       "VIIRS": 21
     },
     "2024-08-06": {
-      "MODIS": 26,
-      "MODIS+VIIRS": 63,
+      "MODIS": 24,
+      "MODIS+VIIRS": 65,
       "VIIRS": 38
     },
     "2024-08-07": {
-      "MODIS": 12,
-      "MODIS+VIIRS": 52,
+      "MODIS": 13,
+      "MODIS+VIIRS": 51,
       "VIIRS": 42
     },
     "2024-08-08": {

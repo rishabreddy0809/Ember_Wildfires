@@ -3,9 +3,9 @@
 Pipeline for one year:
   1. Load MODIS (Terra + Aqua, 1 km) and VIIRS (Suomi NPP, 375 m) from the FIRMS yearly files,
      clipped to California, on the shared schema from train_rf.load_sensor.
-  2. Score every detection with the shipped v3 classifier (MyApp/ML/ember_rf.bin with the
-     land-cover / burn-history grid MyApp/ML/ember_static.bin, cutoff 0.60), exactly as the app
-     does, and drop the ones it calls false alarms (farm burns, industrial heat, noise).
+  2. Score every detection with the shipped classifier (v4: MyApp/ML/ember_rf.bin with the
+     land-cover / burn-history grid MyApp/ML/ember_static.bin, cutoff from outputs/swift_threshold.txt),
+     exactly as the app does, and drop the ones it calls false alarms (farm burns, industrial heat, noise).
   3. Match detections across sensors. A MODIS and a VIIRS detection are the same fire when
        - distance: their pixel footprints touch, i.e. the centers are within half of each pixel's
          diagonal added together (MODIS pixels grow from 1 km at nadir to ~2 x 4.8 km at the scan
@@ -43,7 +43,7 @@ from train_rf import EARTH_KM, OUT, RAW, ROOT, load_sensor
 from train_v3 import BIN, X, context_features
 
 STATIC_BIN = ROOT.parent / "MyApp" / "ML" / "ember_static.bin"
-THRESHOLD = float((OUT / "swift_threshold.txt").read_text())   # 0.60, chosen on 2020 only
+THRESHOLD = float((OUT / "swift_threshold.txt").read_text())   # v4: 0.30, chosen by CV on 2020-2023
 HARM_OUT = OUT / "harmonized"
 DET_OUT = ROOT / "data" / "harmonized"
 TZ = "America/Los_Angeles"
