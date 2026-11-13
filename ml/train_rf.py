@@ -199,7 +199,8 @@ def load_perimeters(year: int) -> gpd.GeoDataFrame:
     gdf["p_end"] = _to_dt(gdf[e]).dt.floor("D") if e else pd.NaT
     gdf["p_name"] = gdf[n].astype(str) if n else gdf.index.astype(str)
     gdf = gdf[gdf["p_start"].notna() & gdf.geometry.notna() & ~gdf.geometry.is_empty]
-    gdf["geometry"] = gdf.geometry.make_valid()
+    bad_geom = ~gdf.geometry.is_valid     # repair only invalid shapes; "structure" handles mixed-dimension input
+    gdf.loc[bad_geom, "geometry"] = gdf.loc[bad_geom].geometry.make_valid(method="structure")
     # Missing or impossible containment dates -> default active window
     bad = gdf["p_end"].isna() | (gdf["p_end"] < gdf["p_start"])
     gdf.loc[bad, "p_end"] = gdf.loc[bad, "p_start"] + pd.Timedelta(days=OPEN_FIRE_DAYS)
