@@ -46,6 +46,39 @@ uv run --project ml python ml/train_rf.py     # ~90 s; writes ml/outputs/results
 - The context features are the strongest signals: cluster size, cross-sensor confirmation and
   persistence.
 
+## Harmonized daily fire record (`harmonize.py`)
+
+```
+uv run --project ml python ml/fetch_data.py 2024 2025     # FIRMS archive + CAL FIRE + CA boundary, no key
+uv run --project ml python ml/harmonize.py 2024 2025      # ~30 s
+```
+
+1. **Load** MODIS (Terra + Aqua, 1 km) and VIIRS (Suomi NPP, 375 m) for California on the shared schema above.
+2. **Drop false alarms** with the shipped v3 model (`MyApp/ML/ember_rf.bin` + `ember_static.bin`, cutoff 0.60),
+   run exactly as the app runs it. On the 18,943-row Swift golden file this path reproduces the model's
+   probabilities to 5e-9 with no decision changes.
+3. **Match across sensors.** A MODIS and a VIIRS detection are the same fire if:
+   - **distance:** their pixel footprints touch (centers within the sum of the two half-diagonals, 1–5 km).
+     MODIS pixels grow from 1 km at nadir to about 2 × 4.8 km at the scan edge, so a fixed radius fails at one end.
+   - **time:** they were seen within 6 hours of each other. That pairs Terra 10:30 with Aqua and S-NPP 13:30,
+     but never a day pass with a night pass.
+   - **confidence:** at least one of the two is nominal or high. Two low-confidence detections don't confirm each other.
+4. **Daily record:** one row per 0.01° cell (~1 km, the grid of the classifier's static features) per Pacific-time day.
+
+`outputs/harmonized/harmonized_fires_{YEAR}.csv` columns:
+
+| Column | Meaning |
+|---|---|
+| `date` | Pacific-time date |
+| `cell_id`, `lat`, `lon` | 0.01° cell and the mean position of its detections |
+| `source` | `MODIS`, `VIIRS` or `MODIS+VIIRS`: which sensors saw fire in this cell that day |
+| `cross_confirmed` | a detection here matched the other sensor (distance + time + confidence) |
+| `confidence` | `high` if cross-confirmed or either sensor said high, else the best single-sensor class |
+| `n_modis`, `n_viirs`, `satellites` | detections per sensor, and which satellites (Terra, Aqua, Suomi NPP) |
+| `frp_max_modis`, `frp_max_viirs` | peak fire radiative power per sensor, MW |
+| `wildfire_prob` | highest classifier probability in the cell |
+| `daynight`, `first_utc`, `last_utc` | day/night passes, first and last observation |
+
 ## Small fires (v2): `small_fires.py`
 
 The first model caught every big fire but almost none of the small ones (0 of 69 fires with fewer

@@ -6,6 +6,7 @@ No API key needed. Usage:
   uv run --project ml python ml/fetch_data.py --history 2017 2018 2019   # full-US files for burn history
   FIRMS_MAP_KEY=... uv run --project ml python ml/fetch_data.py --noaa20 2023   # NOAA-20 VIIRS via the API
 
+Also writes ml/data/raw/boundary/california.geojson (Census) the first time.
 Writes ml/data/raw/firms/{modis,viirs}_{YEAR}.csv and ml/data/raw/perimeters/perimeters_{YEAR}.geojson,
 or with --history, ml/data/raw/history/{modis,viirs-snpp}_{YEAR}_US.csv.
 """
@@ -25,11 +26,12 @@ RAW = Path(__file__).resolve().parent / "data" / "raw"
 FIRMS = "https://firms.modaps.eosdis.nasa.gov/data/country/{p}/{y}/{p}_{y}_United_States.csv"
 PRODUCTS = {"modis": "modis", "viirs": "viirs-snpp"}
 CA_BOX = (-124.5, 32.5, -114.0, 42.1)   # west, south, east, north
+CENSUS_STATES = "https://www2.census.gov/geo/tiger/GENZ2020/shp/cb_2020_us_state_500k.zip"
 FRAP = ("https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/"
         "California_Historic_Fire_Perimeters/FeatureServer/0/query")
 
 
-def get(url: str, tries: int = 4) -> bytes:
+def get(url: str, tries: int = 8) -> bytes:
     for i in range(tries):
         try:
             return urllib.request.urlopen(url, timeout=600).read()
@@ -89,6 +91,21 @@ def firms_api_year(year: int, source: str, key: str) -> None:
     print(f"{path.name}: {len(set(rows)):,} detections")
 
 
+def boundary() -> None:
+    """California outline (Census cartographic boundary, 1:500k) used to clip detections."""
+    path = RAW / "boundary" / "california.geojson"
+    if path.exists():
+        return
+    import geopandas as gpd
+    path.parent.mkdir(parents=True, exist_ok=True)
+    zpath = path.parent / "cb_2020_us_state_500k.zip"
+    zpath.write_bytes(get(CENSUS_STATES))
+    states = gpd.read_file(f"zip://{zpath}")
+    states[states.NAME == "California"].to_crs(4326).to_file(path, driver="GeoJSON")
+    zpath.unlink()
+    print(f"{path.name}: California boundary")
+
+
 def perimeters_year(year: int) -> None:
     out_dir = RAW / "perimeters"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -114,6 +131,7 @@ def main() -> None:
     ap.add_argument("--history", action="store_true", help="full-US FIRMS files for the burn-history grid")
     ap.add_argument("--noaa20", action="store_true", help="NOAA-20 VIIRS standard product via the API (needs FIRMS_MAP_KEY)")
     args = ap.parse_args()
+    boundary()
     for y in args.years:
         if args.noaa20:
             import os
