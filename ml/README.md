@@ -131,6 +131,26 @@ Checked against CAL FIRE perimeters:
 - The daily-count correlation (in `results.json`) is not a reliable third metric: in 2024 it is 0.32 both before
   and after, because VIIRS outage days dominate it.
 
+## Case study: Park Fire 2024 (`case_study.py`)
+
+```
+uv run --project ml python ml/case_study.py     # park_fire.png, park_fire.json, park_fire_cells.geojson
+```
+
+![Park Fire 2024 in the harmonized record](outputs/harmonized/park_fire.png)
+
+The Park Fire (Butte and Tehama counties, 429,603 acres, California's 4th largest) started on 24 July 2024.
+
+- **Suomi NPP VIIRS has no California data from 24 to 28 July**, the fire's five fastest days. Raw VIIRS
+  alone first sees it at 13:03 PDT on 29 July. Aqua MODIS saw it at **15:33 PDT on 24 July**, so the harmonized
+  record starts on the first afternoon.
+- In the first week (24–30 July) raw VIIRS alone marks 170 ~1 km cells as burning. The harmonized record marks **1,201**.
+- Across the fire, the harmonized record marks 1,406 cells: 1,021 that VIIRS alone never saw, and 54 that MODIS alone never saw.
+- On 10, 12, 15 and 17 August only VIIRS still detects the smouldering edges; MODIS's 1 km pixels see nothing.
+- Fire days covered: raw MODIS 19, raw VIIRS 18, harmonized **23**.
+- Raw MODIS alone touches 1,423 cells, slightly more than the harmonized record's MODIS cells: the classifier dropped
+  a few low-probability MODIS edge pixels.
+
 ## Small fires (v2): `small_fires.py`
 
 The first model caught every big fire but almost none of the small ones (0 of 69 fires with fewer

@@ -1,0 +1,192 @@
+{
+  "fire": "Park Fire",
+  "year": 2024,
+  "acres": 429603,
+  "cal_fire_alarm_date": "2024-07-24",
+  "window": [
+    "2024-07-24",
+    "2024-08-20"
+  ],
+  "first_detection_local": {
+    "MODIS": "2024-07-24 15:33 PDT",
+    "VIIRS": "2024-07-29 13:03 PDT"
+  },
+  "first_detection_satellite": {
+    "MODIS": "Aqua",
+    "VIIRS": "Suomi NPP"
+  },
+  "viirs_no_data": [
+    "2024-07-24",
+    "2024-07-28"
+  ],
+  "days_with_detections": {
+    "raw_modis": 19,
+    "raw_viirs": 18,
+    "harmonized": 23
+  },
+  "cells_inside_perimeter": 2145,
+  "cells_seen": {
+    "raw_modis": 1423,
+    "raw_viirs": 385,
+    "harmonized": 1406
+  },
+  "cells_by_source": {
+    "MODIS": 1022,
+    "MODIS+VIIRS": 329,
+    "VIIRS": 55
+  },
+  "cells_only_harmonized_vs_viirs": 1021,
+  "cells_only_harmonized_vs_modis": 54,
+  "first_week_cells": {
+    "raw_viirs": 170,
+    "harmonized": 1201
+  },
+  "late_days_viirs_only": [
+    "2024-08-10",
+    "2024-08-12",
+    "2024-08-15",
+    "2024-08-17"
+  ],
+  "daily_cells": {
+    "2024-07-24": {
+      "MODIS": 90,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-07-25": {
+      "MODIS": 523,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-07-26": {
+      "MODIS": 426,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-07-27": {
+      "MODIS": 90,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-07-28": {
+      "MODIS": 159,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-07-29": {
+      "MODIS": 45,
+      "MODIS+VIIRS": 34,
+      "VIIRS": 43
+    },
+    "2024-07-30": {
+      "MODIS": 31,
+      "MODIS+VIIRS": 83,
+      "VIIRS": 68
+    },
+    "2024-07-31": {
+      "MODIS": 7,
+      "MODIS+VIIRS": 18,
+      "VIIRS": 76
+    },
+    "2024-08-01": {
+      "MODIS": 24,
+      "MODIS+VIIRS": 38,
+      "VIIRS": 18
+    },
+    "2024-08-02": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 18,
+      "VIIRS": 52
+    },
+    "2024-08-03": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-08-04": {
+      "MODIS": 8,
+      "MODIS+VIIRS": 21,
+      "VIIRS": 4
+    },
+    "2024-08-05": {
+      "MODIS": 42,
+      "MODIS+VIIRS": 23,
+      "VIIRS": 21
+    },
+    "2024-08-06": {
+      "MODIS": 26,
+      "MODIS+VIIRS": 63,
+      "VIIRS": 38
+    },
+    "2024-08-07": {
+      "MODIS": 12,
+      "MODIS+VIIRS": 52,
+      "VIIRS": 42
+    },
+    "2024-08-08": {
+      "MODIS": 4,
+      "MODIS+VIIRS": 17,
+      "VIIRS": 47
+    },
+    "2024-08-09": {
+      "MODIS": 2,
+      "MODIS+VIIRS": 25,
+      "VIIRS": 23
+    },
+    "2024-08-10": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 26
+    },
+    "2024-08-11": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 1,
+      "VIIRS": 7
+    },
+    "2024-08-12": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 3
+    },
+    "2024-08-13": {
+      "MODIS": 1,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 2
+    },
+    "2024-08-14": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-08-15": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 2
+    },
+    "2024-08-16": {
+      "MODIS": 2,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 1
+    },
+    "2024-08-17": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 1
+    },
+    "2024-08-18": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-08-19": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    },
+    "2024-08-20": {
+      "MODIS": 0,
+      "MODIS+VIIRS": 0,
+      "VIIRS": 0
+    }
+  }
+}
