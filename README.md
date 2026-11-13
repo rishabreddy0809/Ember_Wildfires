@@ -1,4 +1,76 @@
-# Ember: Active Fire Detection Viewer
+# Ember: one fire record from MODIS and VIIRS
+
+**Live site: <https://emberwildfires.vercel.app>** · NASA Space Apps Challenge 2026, *Harmonization of MODIS and VIIRS Hot Spots* (solo entry)
+
+Ember merges every MODIS and VIIRS hot spot over California into **one daily harmonized fire record**. A Random Forest
+drops false alarms, matching detections are paired across the two sensors, and every ~1 km fire cell gets a `source`
+column: `MODIS`, `VIIRS` or `MODIS+VIIRS`.
+
+## Results
+
+Neither year below was used to train or tune anything.
+
+| California | MODIS–VIIRS match rate | Fire-map overlap (cell-days both report) | Detections inside a CAL FIRE perimeter |
+|---|---|---|---|
+| 2024, raw | 40.1 % | 12.8 % | 61.9 % |
+| **2024, harmonized** | **76.1 %** | **23.6 %** | **95.5 %** |
+| 2025, raw | 41.8 % | 13.7 % | 56.3 % |
+| **2025, harmonized** | **82.9 %** | **29.8 %** | **93.2 %** |
+
+![MODIS and VIIRS agree about twice as often after harmonization](ml/outputs/harmonized/agreement.png)
+
+**Case study, Park Fire 2024 (429,603 acres):**
+- Suomi NPP VIIRS has no California data from 24 to 28 July, the fire's first five days, so VIIRS alone first sees it on 29 July.
+- The harmonized record has it from Aqua MODIS at **15:33 PDT on 24 July**. In the first week it marks **1,201** burning cells; raw VIIRS alone marks 170.
+- VIIRS then keeps the smouldering edges after MODIS loses them.
+
+![Park Fire 2024 in the harmonized record](ml/outputs/harmonized/park_fire.png)
+
+**Harmonized fire calendar** on the live site: every day of 2024 and 2025. Click a day to map its fire cells by sensor.
+
+![Harmonized fire calendar on the website](docs/screenshots/calendar.png)
+
+**Known weak spots**
+- **Winter fires are dropped.** The classifier rejects every detection of January 2025's Palisades, Eaton and Hughes
+  fires, and of five more. It was trained on 2020, which had almost no large January fires.
+- **Small fires are missed.** Of 394 fires under 100 acres in 2024, the harmonized record sees 70.
+- **Part of the agreement gain is built in.** The classifier uses cross-sensor confirmation as an input, so the CAL FIRE
+  perimeter check is the independent evidence.
+- **Outages and timing.** On VIIRS outage days the record is MODIS alone, and no satellite passes between about 14:00 and 22:30 local time.
+
+Full method, all numbers and the sensitivity analysis: [`ml/README.md`](ml/README.md) and
+[`ml/outputs/harmonized/results.json`](ml/outputs/harmonized/results.json).
+Records: [`harmonized_fires_2024.csv`](ml/outputs/harmonized/harmonized_fires_2024.csv),
+[`harmonized_fires_2025.csv`](ml/outputs/harmonized/harmonized_fires_2025.csv).
+
+### Reproduce (no API key needed, about 3 minutes)
+
+Needs [uv](https://docs.astral.sh/uv/). Downloads come from NASA FIRMS archive files, CAL FIRE and the US Census.
+
+```bash
+uv run --project ml python ml/fetch_data.py 2024 2025
+```
+```bash
+uv run --project ml python ml/harmonize.py 2024 2025
+```
+```bash
+uv run --project ml python ml/validate.py 2024 2025
+```
+```bash
+uv run --project ml python ml/plot_validation.py
+```
+```bash
+uv run --project ml python ml/case_study.py
+```
+```bash
+uv run --project ml python ml/export_site_data.py 2024 2025
+```
+
+![The Ember website](docs/screenshots/hero.jpg)
+
+---
+
+# The Ember app
 
 A macOS app that downloads NASA FIRMS satellite fire detections from **MODIS** and **VIIRS**
 and shows each one on a map exactly as reported, with no clustering, merging, or filtering.

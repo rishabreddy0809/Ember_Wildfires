@@ -25,18 +25,25 @@ Then open http://localhost:8000. Press Ctrl-C in Terminal to stop.
 | `js/scan.js` | 3D satellite scan / pixel-size demo |
 | `js/appmock.js` | Interactive Ember app preview (real detections by region, click to inspect) |
 | `js/main.js` | Navigation, the opening counter, Random Forest demo, starts the 3D scenes |
+| `js/calendar.js` | Harmonized fire calendar: one square per day, click a day to map its fire cells |
 | `img/ember-app.jpg` | Screenshot of the real Ember app, shown in the demo section |
 | `data/fires.bin` | Every MODIS + NOAA-20 VIIRS detection from one 24-hour FIRMS global file (packed) |
 | `data/land.bin` | Dots on land for the globe (from Natural Earth, public domain) |
 | `data/meta.json` | Counts and dates shown on the page |
+| `data/harmonized.json` | Daily harmonized fire cells for California 2024–2025 (from `ml/export_site_data.py`) |
+| `img/agreement.png`, `img/park_fire.png` | Validation chart and Park Fire case study (from `ml/`) |
 | `vendor/three/` | three.js r170 (MIT license) |
 
-## Things to edit
-Search index.html for `✏️` to find the spots meant for you:
-- **Hero badge:** add your team name or Space Apps location.
-- **Results:** replace the "Experiment in progress" pill once the experiment is done.
-- **Roadmap:** adjust the "Next" items to your real plans.
-- **Team:** add teammates or a line about yourself.
+## Updating the results
+The Results section (`#results`) shows the harmonized MODIS + VIIRS record. Its charts and data are generated:
+```
+uv run --project ml python ml/harmonize.py 2024 2025
+uv run --project ml python ml/validate.py 2024 2025
+uv run --project ml python ml/plot_validation.py
+uv run --project ml python ml/case_study.py
+uv run --project ml python ml/export_site_data.py 2024 2025   # -> data/harmonized.json, img/agreement.png, img/park_fire.png
+```
+The headline numbers in `index.html` are typed in by hand; check them against `ml/outputs/harmonized/results.json`.
 
 ## Publish on GitHub Pages
 1. Create a new public repository on github.com (for example `wildfire-research`).

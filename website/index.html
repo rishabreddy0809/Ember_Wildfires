@@ -34,6 +34,7 @@
   <nav id="nav-links">
     <a href="#problem">Problem</a>
     <a href="#how">How it works</a>
+    <a href="#results">Results</a>
     <a href="#demo">Demo</a>
     <a href="#data">NASA data</a>
     <a href="#team">Team</a>
@@ -66,8 +67,7 @@
   <div class="steps-wrap">
     <!-- The hook: a counter runs up while the fires switch on across the planet. -->
     <article class="step step-hero" data-step="0">
-      <!-- ✏️ EDIT THIS: add your challenge name / team name / location, e.g. "NASA Space Apps Challenge · Boston" -->
-      <p class="eyebrow"><span class="pulse"></span>NASA Space Apps Challenge</p>
+      <p class="eyebrow"><span class="pulse"></span>NASA Space Apps Challenge 2026 · Harmonization of MODIS and VIIRS Hot Spots</p>
       <h1 class="hook" id="hook">
         <span class="hook-pre">In one day, NASA satellites flagged</span>
         <span class="hook-num" id="hook-num" data-total="136676">136,676</span>
@@ -173,7 +173,7 @@
   <ol class="pipeline">
     <li class="reveal"><span class="p-num">1</span><h3>Fetch</h3><p>Request MODIS and VIIRS detections for any area and up to 10 days from the FIRMS API.</p></li>
     <li class="reveal"><span class="p-num">2</span><h3>Parse</h3><p>Turn each CSV row into a typed detection with location, time, brightness and fire power.</p></li>
-    <li class="reveal"><span class="p-num">3</span><h3>Harmonize</h3><p>Put both sensors on one timeline and one map, with their different confidence scales kept intact.</p></li>
+    <li class="reveal"><span class="p-num">3</span><h3>Harmonize</h3><p>Match MODIS and VIIRS detections of the same fire by pixel footprint, a 6-hour window and confidence, and merge them into one daily record.</p></li>
     <li class="reveal"><span class="p-num">4</span><h3>Classify</h3><p>A Random Forest labels each detection as a real fire or a false alarm.</p></li>
     <li class="reveal"><span class="p-num">5</span><h3>Show &amp; share</h3><p>Draw it on the map, inspect it, and export it for analysis.</p></li>
   </ol>
@@ -235,16 +235,118 @@
       <p class="kicker">How we test it</p>
       <h3>Scored against fires that really happened</h3>
       <p>The model trains on one fire season and is scored on a different one it has never seen, using mapped fire perimeters as the answer key.</p>
-      <!-- ✏️ ADD YOUR RESULTS HERE LATER: replace the status line below with your numbers or a chart image -->
-      <p class="status-pill"><span class="pulse"></span>Experiment in progress: results coming soon</p>
+      <p class="status-pill">Tested on 2021: 99.2% precision, 97.1% recall, 92.4% of false alarms removed</p>
     </div>
     <ol class="mini-steps">
-      <li>MODIS + VIIRS detections, California, Jun–Nov 2020 and 2021</li>
-      <li>Answer key: CAL FIRE fire perimeters</li>
-      <li>Train on 2020, test on 2021 (unseen data)</li>
-      <li>Score <b>precision</b> (of everything flagged as fire, how much really was) and <b>recall</b> (of all real fires, how many were caught)</li>
-      <li>Compare with keeping every detection, unfiltered</li>
+      <li>MODIS + VIIRS detections, all of California, 2020 to 2025</li>
+      <li>Answer key: CAL FIRE fire perimeters, with one pixel of tolerance</li>
+      <li>Train and tune on 2020 only; test once on 2021: <b>99.2%</b> precision (of everything flagged as fire, how much really was), <b>97.1%</b> recall (of real fire detections, how many were kept)</li>
+      <li>Years it never saw: <b>93%</b> accuracy on 2022 and <b>90%</b> on 2023, where guessing “fire” every time gets 45%</li>
+      <li>2024 and 2025 run through the harmonized record: <b>95%</b> and <b>93%</b> of what it keeps lies inside a mapped fire, versus 62% and 56% of raw detections</li>
     </ol>
+  </div>
+</section>
+
+<!-- ============ RESULTS · THE HARMONIZED RECORD ============ -->
+<section class="block" id="results">
+  <div class="block-head">
+    <p class="kicker">Results</p>
+    <h2>Two sensors, one fire record.</h2>
+    <p class="lead">Ember turns every MODIS and VIIRS hot spot over California into one daily record: false alarms dropped by the classifier, detections of the same fire matched across sensors, and a <b>source</b> column that says who saw it. 2024 and 2025 were never used to train or tune anything.</p>
+  </div>
+
+  <div class="stat-grid">
+    <article class="stat-card reveal">
+      <p class="stat-num"><span>40→76</span><small>%</small></p>
+      <p class="stat-label">of detections confirmed by the other sensor, before and after harmonization (California 2024; 42→83% in 2025)</p>
+      <p class="stat-src">Match rate · ml/outputs/harmonized/results.json</p>
+    </article>
+    <article class="stat-card reveal">
+      <p class="stat-num"><span>13→24</span><small>%</small></p>
+      <p class="stat-label">of ~1 km fire cell-days that both sensors report (2024; 14→30% in 2025)</p>
+      <p class="stat-src">Fire-map overlap · results.json</p>
+    </article>
+    <article class="stat-card reveal">
+      <p class="stat-num"><span>62→96</span><small>%</small></p>
+      <p class="stat-label">of detections that fall inside a CAL FIRE fire perimeter, raw vs harmonized (2024)</p>
+      <p class="stat-src">Checked against CAL FIRE FRAP perimeters</p>
+    </article>
+  </div>
+
+  <figure class="fig card fig-img reveal">
+    <img src="img/agreement.png" width="2000" height="920" loading="lazy" alt="Bar chart. Match rate between MODIS and VIIRS rises from 40% to 76% in California 2024 and from 42% to 83% in 2025 after harmonization. Fire-map overlap rises from 13% to 24% in 2024 and from 14% to 30% in 2025.">
+    <figcaption><b>Before</b> = raw FIRMS products overlaid on the same ~1 km cell and day. <b>After</b> = the harmonized record. The matching rules alone take 2024 from 40% to 57%; dropping false alarms takes it to 76%.</figcaption>
+    <details class="table-view">
+      <summary>Show as a table</summary>
+      <table>
+        <thead><tr><th>California</th><th>Match rate before</th><th>after</th><th>Fire-map overlap before</th><th>after</th></tr></thead>
+        <tbody>
+          <tr><td>2024</td><td>40.1%</td><td>76.1%</td><td>12.8%</td><td>23.6%</td></tr>
+          <tr><td>2025</td><td>41.8%</td><td>82.9%</td><td>13.7%</td><td>29.8%</td></tr>
+        </tbody>
+      </table>
+    </details>
+  </figure>
+
+  <!-- Case study -->
+  <div class="case reveal">
+    <div class="case-text">
+      <p class="kicker">Case study · Park Fire, July 2024</p>
+      <h3>VIIRS alone missed the first five days. The harmonized record didn’t.</h3>
+      <p>The Park Fire burned 429,603 acres in Butte and Tehama counties, California’s fourth-largest fire. Suomi NPP VIIRS has <b>no California data from 24 to 28 July</b>, the fire’s fastest days.</p>
+      <ul class="case-facts">
+        <li><b>15:33 PDT, 24 July:</b> Aqua MODIS sees the fire. Raw VIIRS alone first sees it on <b>29 July</b>.</li>
+        <li><b>First week:</b> raw VIIRS marks 170 ~1 km cells as burning; the harmonized record marks <b>1,201</b>.</li>
+        <li><b>The tail:</b> on 10, 12, 15 and 17 August only VIIRS’s 375 m pixels still find the smouldering edges.</li>
+        <li><b>Fire days covered:</b> MODIS 19, VIIRS 18, harmonized <b>23</b>.</li>
+      </ul>
+    </div>
+    <figure class="fig fig-img">
+      <img src="img/park_fire.png" width="2400" height="1240" loading="lazy" alt="Left: map of the Park Fire perimeter filled with about 1 km cells, most orange (seen by MODIS only), the northeast arm green (both sensors) and a few blue (VIIRS only). Right: stacked daily bars of fire cells from 24 July to 20 August 2024; the first five days are all MODIS because Suomi NPP VIIRS has no data, later days mix both sensors, and from 10 August only VIIRS still sees fire.">
+      <figcaption>Each ~1 km cell is coloured by which sensors ever saw fire there. Data: NASA FIRMS, CAL FIRE FRAP. Made by <code>ml/case_study.py</code>.</figcaption>
+    </figure>
+  </div>
+
+  <!-- Harmonized fire calendar -->
+  <div class="cal card reveal" id="cal">
+    <div class="cal-head">
+      <div>
+        <p class="kicker">Harmonized fire calendar</p>
+        <h3>Every day of fire in California, from both sensors</h3>
+        <p id="cal-summary" class="cal-summary"></p>
+        <p id="cal-agree" class="cal-summary"></p>
+      </div>
+      <div class="seg" id="cal-years" role="group" aria-label="Choose a year"></div>
+    </div>
+    <p id="cal-status" class="cal-summary">Loading the harmonized record…</p>
+    <div class="cal-body">
+      <div class="cal-left">
+        <div class="cal-scroll">
+          <svg id="cal-grid" tabindex="0" role="application" aria-label="Calendar of days. Use the arrow keys to move between days; the selected day is described below and drawn on the map."></svg>
+        </div>
+        <div class="cal-legend" id="cal-legend"></div>
+        <div class="cal-live" id="cal-live" aria-live="polite"></div>
+      </div>
+      <figure class="cal-mapbox">
+        <p class="card-title" id="cal-map-title"></p>
+        <canvas id="cal-map" role="img"></canvas>
+        <div class="cal-map-legend" id="cal-map-legend"></div>
+      </figure>
+    </div>
+    <div class="cal-tip" id="cal-tip" hidden></div>
+    <p class="cal-foot">Click a day to map it. The full record is one CSV per year with a <code>source</code> column (MODIS, VIIRS or MODIS+VIIRS): <a href="https://github.com/rishabreddy0809/Ember_Wildfires/blob/main/ml/outputs/harmonized/harmonized_fires_2024.csv">2024</a> · <a href="https://github.com/rishabreddy0809/Ember_Wildfires/blob/main/ml/outputs/harmonized/harmonized_fires_2025.csv">2025</a>.</p>
+  </div>
+
+  <!-- Weak spots -->
+  <div class="weak card reveal">
+    <p class="kicker">Known weak spots</p>
+    <h3>What the harmonized record still gets wrong</h3>
+    <ul>
+      <li><b>Winter fires are dropped.</b> The classifier rejects every detection of eight January 2025 fires, including <b>Palisades</b> (23,449 acres), <b>Eaton</b> (14,056) and <b>Hughes</b> (10,397). It learned from 2020, which had almost no large January fires. Fixing this means retraining.</li>
+      <li><b>Small fires are missed.</b> Of 394 fires under 100 acres in 2024, raw MODIS saw 54, raw VIIRS 73 and the harmonized record 70.</li>
+      <li><b>Part of the agreement gain is built in.</b> One classifier input is “did the other sensor see fire nearby?”, so the perimeter check is the independent evidence.</li>
+      <li><b>Outages and timing.</b> On VIIRS outage days the record is MODIS alone. No satellite passes between about 14:00 and 22:30, so evening fires are first seen at night.</li>
+    </ul>
   </div>
 </section>
 
@@ -356,12 +458,11 @@
     <p class="kicker">Where it’s going</p>
     <h2>Roadmap</h2>
   </div>
-  <!-- ✏️ EDIT THIS: change the "Next" items to match your real plans -->
   <ol class="roadmap">
-    <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Ember viewer</h3><p>macOS app that downloads, maps, inspects and exports every MODIS and VIIRS detection.</p></li>
-    <li class="now reveal"><span class="rm-tag">In progress</span><h3>Real-fire classifier</h3><p>Training and testing the Random Forest against CAL FIRE perimeters.</p></li>
-    <li class="next reveal"><span class="rm-tag">Next</span><h3>Model inside Ember</h3><p>Run the trained model in the app so the map can highlight likely real fires.</p></li>
-    <li class="next reveal"><span class="rm-tag">Next</span><h3>Beyond California</h3><p>Test the model in other fire-prone regions to see if it holds up worldwide.</p></li>
+    <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Ember viewer + classifier</h3><p>macOS app that maps every MODIS and VIIRS detection, with the Random Forest running on-device to hide false alarms.</p></li>
+    <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Harmonized fire record</h3><p>One daily California record from both sensors, validated against CAL FIRE perimeters for 2024 and 2025.</p></li>
+    <li class="next reveal"><span class="rm-tag">Next</span><h3>Winter fires</h3><p>Retrain with January fires such as Palisades and Eaton so the classifier stops dropping them.</p></li>
+    <li class="next reveal"><span class="rm-tag">Next</span><h3>More satellites, more places</h3><p>Add NOAA-20 and NOAA-21 VIIRS for extra daily passes, then test outside California.</p></li>
   </ol>
 </section>
 
@@ -371,8 +472,7 @@
     <div class="avatar" aria-hidden="true">R</div>
     <div>
       <p class="kicker">Team</p>
-      <!-- ✏️ EDIT THIS: add teammates, a team name, or a line about yourself -->
-      <h2>Built by Rishab</h2>
+      <h2>Built solo by Rishab</h2>
       <p>A high school student in Shrewsbury, Massachusetts, who builds tools to make satellite data easier to understand. Ember started as a way to see the raw fire data before training a model on it.</p>
     </div>
   </div>
@@ -413,5 +513,6 @@
 </footer>
 
 <script type="module" src="js/main.js"></script>
+<script type="module" src="js/calendar.js"></script>
 </body>
 </html>
