@@ -1,0 +1,445 @@
+{
+  "method": "How well do MODIS and VIIRS agree before and after harmonization, and what does the\nharmonized record still miss?\n\nBefore = the raw FIRMS products overlaid as they are: every detection, compared on the same\n         ~1 km cell and UTC day.\nAfter  = the harmonized record (harmonize.py): false alarms dropped by the classifier, then\n         matched by pixel footprint distance, a 6 h window and confidence.\n\nTwo headline metrics:\n  1. Match rate: share of detections that the other sensor also saw.\n  2. Cell-day overlap (Jaccard): of all ~1 km cell-days that either sensor reports as fire,\n     the share that both report.\n\nChecks against independent truth (CAL FIRE FRAP perimeters, a detection within one pixel of\na perimeter between 1 day before the alarm date and 2 days after containment):\n  - fires seen by raw MODIS, raw VIIRS, and the harmonized record, by fire size;\n  - large fires the harmonized record drops completely;\n  - days a sensor has no data at all.",
+  "years": {
+    "2024": {
+      "detections": {
+        "raw": 49435,
+        "raw_modis": 11099,
+        "raw_viirs": 38336,
+        "kept_by_classifier": 30132
+      },
+      "match_rate": {
+        "before_raw_overlay": {
+          "all": 0.4006068574896329,
+          "modis_seen_by_viirs": 0.4473375979818002,
+          "viirs_seen_by_modis": 0.38707742070116863,
+          "n_detections": 49435
+        },
+        "raw_with_matching_rules": {
+          "all": 0.567492667138667,
+          "modis_seen_by_viirs": 0.59708081809172,
+          "viirs_seen_by_modis": 0.5589263355592654,
+          "n_detections": 49435
+        },
+        "after_harmonized": {
+          "all": 0.7614828089738483,
+          "modis_seen_by_viirs": 0.6132934281082429,
+          "viirs_seen_by_modis": 0.8152218152218152,
+          "n_detections": 30132
+        }
+      },
+      "cell_day_overlap": {
+        "before_raw": {
+          "jaccard": 0.12836673809823942,
+          "cell_days_both": 3055,
+          "cell_days_either": 23799,
+          "cell_days_modis_only": 5581,
+          "cell_days_viirs_only": 15163,
+          "daily_count_pearson_r": 0.3157463304976491
+        },
+        "after_harmonized": {
+          "jaccard": 0.23582513439496908,
+          "cell_days_both": 2325,
+          "cell_days_either": 9859,
+          "cell_days_modis_only": 3480,
+          "cell_days_viirs_only": 4054,
+          "daily_count_pearson_r": 0.3188244706180967
+        }
+      },
+      "classifier_vs_perimeters": {
+        "perimeter_detections_kept": 0.9408725227287592,
+        "non_perimeter_detections_removed": 0.9277721800922735,
+        "kept_inside_perimeters": 0.9547988849064117,
+        "raw_inside_perimeters": 0.6185496105997775
+      },
+      "fires_seen": {
+        "0-100 acres": {
+          "fires": 394,
+          "raw_modis": 54,
+          "raw_viirs": 73,
+          "raw_either": 99,
+          "harmonized": 70
+        },
+        "100-1,000 acres": {
+          "fires": 104,
+          "raw_modis": 43,
+          "raw_viirs": 49,
+          "raw_either": 65,
+          "harmonized": 50
+        },
+        "1,000-10,000 acres": {
+          "fires": 36,
+          "raw_modis": 31,
+          "raw_viirs": 26,
+          "raw_either": 31,
+          "harmonized": 30
+        },
+        "10,000+ acres": {
+          "fires": 19,
+          "raw_modis": 19,
+          "raw_viirs": 17,
+          "raw_either": 19,
+          "harmonized": 19
+        },
+        "all": {
+          "fires": 553,
+          "raw_modis": 147,
+          "raw_viirs": 165,
+          "raw_either": 214,
+          "harmonized": 169
+        }
+      },
+      "large_fires_dropped_by_classifier": [
+        {
+          "fire": "School",
+          "acres": 1479,
+          "start": "2024-05-02",
+          "raw_detections": 25,
+          "median_wildfire_prob": 0.098
+        }
+      ],
+      "sensor_gaps": {
+        "MODIS": {
+          "days_without_any_detection": 55,
+          "gaps_3_days_or_more": [
+            "2024-01-12 to 2024-01-14",
+            "2024-01-19 to 2024-01-22",
+            "2024-02-02 to 2024-02-06",
+            "2024-02-17 to 2024-02-19",
+            "2024-02-29 to 2024-03-03",
+            "2024-03-29 to 2024-03-31",
+            "2024-12-25 to 2024-12-28"
+          ]
+        },
+        "VIIRS": {
+          "days_without_any_detection": 23,
+          "gaps_3_days_or_more": [
+            "2024-05-30 to 2024-06-03",
+            "2024-07-10 to 2024-07-15",
+            "2024-07-24 to 2024-07-28",
+            "2024-11-03 to 2024-11-05"
+          ]
+        }
+      },
+      "match_rate_sensitivity": [
+        {
+          "radius_km": 1.0,
+          "window_h": 1.0,
+          "match_rate": 0.3152
+        },
+        {
+          "radius_km": 1.0,
+          "window_h": 6.0,
+          "match_rate": 0.6986
+        },
+        {
+          "radius_km": 1.0,
+          "window_h": 12.0,
+          "match_rate": 0.7662
+        },
+        {
+          "radius_km": 2.0,
+          "window_h": 1.0,
+          "match_rate": 0.402
+        },
+        {
+          "radius_km": 2.0,
+          "window_h": 6.0,
+          "match_rate": 0.7865
+        },
+        {
+          "radius_km": 2.0,
+          "window_h": 12.0,
+          "match_rate": 0.8281
+        },
+        {
+          "radius_km": 4.0,
+          "window_h": 1.0,
+          "match_rate": 0.4428
+        },
+        {
+          "radius_km": 4.0,
+          "window_h": 6.0,
+          "match_rate": 0.824
+        },
+        {
+          "radius_km": 4.0,
+          "window_h": 12.0,
+          "match_rate": 0.8519
+        },
+        {
+          "radius_km": "footprint",
+          "window_h": 1.0,
+          "match_rate": 0.3757
+        },
+        {
+          "radius_km": "footprint",
+          "window_h": 6.0,
+          "match_rate": 0.7615
+        },
+        {
+          "radius_km": "footprint",
+          "window_h": 12.0,
+          "match_rate": 0.8126
+        },
+        {
+          "radius_km": "footprint",
+          "window_h": 6.0,
+          "confidence_rule": false,
+          "match_rate": 0.762
+        }
+      ],
+      "harmonized_record": {
+        "cell_days": 9859,
+        "days_with_fire": 185,
+        "by_source": {
+          "VIIRS": 4054,
+          "MODIS": 3480,
+          "MODIS+VIIRS": 2325
+        },
+        "cross_confirmed": 6028
+      }
+    },
+    "2025": {
+      "detections": {
+        "raw": 44221,
+        "raw_modis": 7821,
+        "raw_viirs": 36400,
+        "kept_by_classifier": 22113
+      },
+      "match_rate": {
+        "before_raw_overlay": {
+          "all": 0.4184889532122747,
+          "modis_seen_by_viirs": 0.5949367088607594,
+          "viirs_seen_by_modis": 0.3805769230769231,
+          "n_detections": 44221
+        },
+        "raw_with_matching_rules": {
+          "all": 0.5915741389837408,
+          "modis_seen_by_viirs": 0.8076972254187444,
+          "viirs_seen_by_modis": 0.5451373626373627,
+          "n_detections": 44221
+        },
+        "after_harmonized": {
+          "all": 0.8288337177226066,
+          "modis_seen_by_viirs": 0.8986114172360591,
+          "viirs_seen_by_modis": 0.8108215748748293,
+          "n_detections": 22113
+        }
+      },
+      "cell_day_overlap": {
+        "before_raw": {
+          "jaccard": 0.13719149745589423,
+          "cell_days_both": 2885,
+          "cell_days_either": 21029,
+          "cell_days_modis_only": 3357,
+          "cell_days_viirs_only": 14787,
+          "daily_count_pearson_r": 0.8462914802953406
+        },
+        "after_harmonized": {
+          "jaccard": 0.2975232198142415,
+          "cell_days_both": 1922,
+          "cell_days_either": 6460,
+          "cell_days_modis_only": 1374,
+          "cell_days_viirs_only": 3164,
+          "daily_count_pearson_r": 0.900094342867753
+        }
+      },
+      "classifier_vs_perimeters": {
+        "perimeter_detections_kept": 0.8280459400851338,
+        "non_perimeter_detections_removed": 0.9227185672136239,
+        "kept_inside_perimeters": 0.9324831547053769,
+        "raw_inside_perimeters": 0.5631261165509599
+      },
+      "fires_seen": {
+        "0-100 acres": {
+          "fires": 408,
+          "raw_modis": 40,
+          "raw_viirs": 89,
+          "raw_either": 107,
+          "harmonized": 68
+        },
+        "100-1,000 acres": {
+          "fires": 78,
+          "raw_modis": 45,
+          "raw_viirs": 47,
+          "raw_either": 55,
+          "harmonized": 40
+        },
+        "1,000-10,000 acres": {
+          "fires": 25,
+          "raw_modis": 21,
+          "raw_viirs": 22,
+          "raw_either": 23,
+          "harmonized": 18
+        },
+        "10,000+ acres": {
+          "fires": 10,
+          "raw_modis": 10,
+          "raw_viirs": 10,
+          "raw_either": 10,
+          "harmonized": 7
+        },
+        "all": {
+          "fires": 521,
+          "raw_modis": 116,
+          "raw_viirs": 168,
+          "raw_either": 195,
+          "harmonized": 133
+        }
+      },
+      "large_fires_dropped_by_classifier": [
+        {
+          "fire": "Palisades",
+          "acres": 23449,
+          "start": "2025-01-07",
+          "raw_detections": 1341,
+          "median_wildfire_prob": 0.37
+        },
+        {
+          "fire": "Eaton",
+          "acres": 14056,
+          "start": "2025-01-08",
+          "raw_detections": 679,
+          "median_wildfire_prob": 0.321
+        },
+        {
+          "fire": "Hughes",
+          "acres": 10397,
+          "start": "2025-01-22",
+          "raw_detections": 184,
+          "median_wildfire_prob": 0.278
+        },
+        {
+          "fire": "Border 2",
+          "acres": 6630,
+          "start": "2025-01-23",
+          "raw_detections": 175,
+          "median_wildfire_prob": 0.379
+        },
+        {
+          "fire": "Jaw",
+          "acres": 4327,
+          "start": "2025-05-19",
+          "raw_detections": 89,
+          "median_wildfire_prob": 0.404
+        },
+        {
+          "fire": "Pack",
+          "acres": 1974,
+          "start": "2025-11-13",
+          "raw_detections": 71,
+          "median_wildfire_prob": 0.489
+        },
+        {
+          "fire": "Springs",
+          "acres": 1817,
+          "start": "2025-05-06",
+          "raw_detections": 4,
+          "median_wildfire_prob": 0.229
+        },
+        {
+          "fire": "Kenneth",
+          "acres": 1012,
+          "start": "2025-01-09",
+          "raw_detections": 1,
+          "median_wildfire_prob": 0.197
+        }
+      ],
+      "sensor_gaps": {
+        "MODIS": {
+          "days_without_any_detection": 51,
+          "gaps_3_days_or_more": [
+            "2025-02-07 to 2025-02-09",
+            "2025-03-14 to 2025-03-16",
+            "2025-12-23 to 2025-12-28"
+          ]
+        },
+        "VIIRS": {
+          "days_without_any_detection": 6,
+          "gaps_3_days_or_more": [
+            "2025-07-05 to 2025-07-07"
+          ]
+        }
+      },
+      "match_rate_sensitivity": [
+        {
+          "radius_km": 1.0,
+          "window_h": 1.0,
+          "match_rate": 0.1841
+        },
+        {
+          "radius_km": 1.0,
+          "window_h": 6.0,
+          "match_rate": 0.7513
+        },
+        {
+          "radius_km": 1.0,
+          "window_h": 12.0,
+          "match_rate": 0.8455
+        },
+        {
+          "radius_km": 2.0,
+          "window_h": 1.0,
+          "match_rate": 0.2423
+        },
+        {
+          "radius_km": 2.0,
+          "window_h": 6.0,
+          "match_rate": 0.8605
+        },
+        {
+          "radius_km": 2.0,
+          "window_h": 12.0,
+          "match_rate": 0.9091
+        },
+        {
+          "radius_km": 4.0,
+          "window_h": 1.0,
+          "match_rate": 0.2731
+        },
+        {
+          "radius_km": 4.0,
+          "window_h": 6.0,
+          "match_rate": 0.8987
+        },
+        {
+          "radius_km": 4.0,
+          "window_h": 12.0,
+          "match_rate": 0.9334
+        },
+        {
+          "radius_km": "footprint",
+          "window_h": 1.0,
+          "match_rate": 0.2306
+        },
+        {
+          "radius_km": "footprint",
+          "window_h": 6.0,
+          "match_rate": 0.8288
+        },
+        {
+          "radius_km": "footprint",
+          "window_h": 12.0,
+          "match_rate": 0.8879
+        },
+        {
+          "radius_km": "footprint",
+          "window_h": 6.0,
+          "confidence_rule": false,
+          "match_rate": 0.8295
+        }
+      ],
+      "harmonized_record": {
+        "cell_days": 6460,
+        "days_with_fire": 172,
+        "by_source": {
+          "VIIRS": 3164,
+          "MODIS+VIIRS": 1922,
+          "MODIS": 1374
+        },
+        "cross_confirmed": 4870
+      }
+    }
+  }
+}

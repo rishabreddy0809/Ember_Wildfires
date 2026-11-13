@@ -79,6 +79,58 @@ uv run --project ml python ml/harmonize.py 2024 2025      # ~30 s
 | `wildfire_prob` | highest classifier probability in the cell |
 | `daynight`, `first_utc`, `last_utc` | day/night passes, first and last observation |
 
+## Validation (`validate.py`, `plot_validation.py`)
+
+```
+uv run --project ml python ml/validate.py 2024 2025     # writes outputs/harmonized/results.json
+uv run --project ml python ml/plot_validation.py        # writes outputs/harmonized/agreement.png
+```
+
+![MODIS and VIIRS agreement before and after harmonization](outputs/harmonized/agreement.png)
+
+**Before** = raw FIRMS overlaid: every detection, compared on the same ~1 km cell and UTC day.
+**After** = the harmonized record: false alarms dropped, then matched by footprint distance, a 6 h window and confidence.
+Neither year was used to train or tune the classifier.
+
+| California | Match rate before → after | Fire-map overlap (cell-days both sensors report) before → after |
+|---|---|---|
+| 2024 | 40.1 % → **76.1 %** | 12.8 % → **23.6 %** |
+| 2025 | 41.8 % → **82.9 %** | 13.7 % → **29.8 %** |
+
+How each part contributes (2024): the matching rules alone take the match rate from 40 % to 57 %.
+Dropping false alarms takes it to 76 %. The time window matters most: a ±1 h window gives 38 %, ±6 h 76 %, ±12 h 81 %.
+The confidence rule changes almost nothing (76.2 % vs 76.1 %), because the classifier has already removed most low-confidence detections.
+
+Checked against CAL FIRE perimeters:
+
+| | 2024 | 2025 |
+|---|---|---|
+| Raw detections inside a mapped fire | 61.9 % | 56.3 % |
+| Harmonized detections inside a mapped fire | **95.5 %** | **93.2 %** |
+| Mapped-fire detections the classifier keeps | 94.1 % | 82.8 % |
+| Fires ≥ 1,000 acres seen: raw MODIS / raw VIIRS / harmonized | 50 / 43 / **49** of 55 | 31 / 32 / 25 of 35 |
+
+### Known weak spots
+- **Winter fires are dropped.** In 2025 the classifier rejects every detection of eight fires of 1,000+ acres,
+  all in January: Palisades (23,449 acres), Eaton (14,056), Hughes (10,397), Border 2, Jaw, Pack, Springs, Kenneth.
+  Their median wildfire probability is about 0.35, below the 0.60 cutoff. The model was trained on 2020, which had
+  almost no large January fires, and `month` is one of its strongest features. This is why harmonized 2025 sees
+  fewer large fires than raw VIIRS. The classifier is unchanged here; fixing it means retraining.
+- **Small fires are missed.** Of the 2024 fires under 100 acres, raw MODIS saw 54 of 394, raw VIIRS 73 and the
+  harmonized record 70. Most small fires are below what either sensor resolves, and the classifier drops some of
+  the ones that are seen (99 seen by either sensor → 70 kept).
+- **Part of the gain is built in.** One of the classifier's features is "the other sensor saw fire within 2 km
+  yesterday or today", so filtering favors detections the other sensor confirms. The perimeter checks above are
+  the independent evidence that the filtered record is cleaner, not just more self-consistent.
+- **Sensor outages.** Suomi NPP VIIRS has no California detections on 2024-05-30 to 06-03, 07-10 to 07-15 and
+  07-24 to 07-28 (the Park Fire's first five days). On those days the record falls back to MODIS alone.
+- **No afternoon pass.** All four satellites pass around 10:30, 13:30, 22:30 and 01:30 local time, so a fire that
+  starts after about 14:00 is first seen at night.
+- **Only Suomi NPP VIIRS.** NOAA-20 and NOAA-21 have no yearly FIRMS files; adding them needs a FIRMS key
+  (`fetch_data.py --noaa20`) and would add two more passes a day.
+- The daily-count correlation (in `results.json`) is not a reliable third metric: in 2024 it is 0.32 both before
+  and after, because VIIRS outage days dominate it.
+
 ## Small fires (v2): `small_fires.py`
 
 The first model caught every big fire but almost none of the small ones (0 of 69 fires with fewer
