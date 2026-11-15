@@ -13,6 +13,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..900&family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <!-- Start everything the opening globe needs at once, instead of discovering it one file at a time -->
+  <link rel="modulepreload" href="js/main.js">
+  <link rel="modulepreload" href="js/lib.js">
+  <link rel="modulepreload" href="js/globe.js">
+  <link rel="modulepreload" href="vendor/three/three.module.min.js">
+  <link rel="modulepreload" href="vendor/three/addons/postprocessing/EffectComposer.js">
+  <link rel="modulepreload" href="vendor/three/addons/postprocessing/RenderPass.js">
+  <link rel="modulepreload" href="vendor/three/addons/postprocessing/UnrealBloomPass.js">
+  <link rel="modulepreload" href="vendor/three/addons/postprocessing/OutputPass.js">
+  <link rel="preload" href="data/fires.pack" as="fetch" crossorigin>
+  <link rel="preload" href="data/land.pack" as="fetch" crossorigin>
   <!-- three.js is stored in vendor/ so the site doesn't depend on another server -->
   <script type="importmap">
     { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -66,8 +77,6 @@
   <div class="steps-wrap">
     <!-- The hook: a counter runs up while the fires switch on across the planet. -->
     <article class="step step-hero" data-step="0">
-      <!-- ✏️ EDIT THIS: add your challenge name / team name / location, e.g. "NASA Space Apps Challenge · Boston" -->
-      <p class="eyebrow"><span class="pulse"></span>NASA Space Apps Challenge</p>
       <h1 class="hook" id="hook">
         <span class="hook-pre">In one day, NASA satellites flagged</span>
         <span class="hook-num" id="hook-num" data-total="136676">136,676</span>
@@ -171,11 +180,11 @@
   </div>
 
   <ol class="pipeline">
-    <li class="reveal"><span class="p-num">1</span><h3>Fetch</h3><p>Request MODIS and VIIRS detections for any area and up to 10 days from the FIRMS API.</p></li>
+    <li class="reveal"><span class="p-num">1</span><h3>Fetch</h3><p>Request MODIS and VIIRS detections for the whole world, or any area, for up to 10 days from the FIRMS API.</p></li>
     <li class="reveal"><span class="p-num">2</span><h3>Parse</h3><p>Turn each CSV row into a typed detection with location, time, brightness and fire power.</p></li>
     <li class="reveal"><span class="p-num">3</span><h3>Harmonize</h3><p>Put both sensors on one timeline and one map, with their different confidence scales kept intact.</p></li>
-    <li class="reveal"><span class="p-num">4</span><h3>Classify</h3><p>A Random Forest labels each detection as a real fire or a false alarm.</p></li>
-    <li class="reveal"><span class="p-num">5</span><h3>Show &amp; share</h3><p>Draw it on the map, inspect it, and export it for analysis.</p></li>
+    <li class="reveal"><span class="p-num">4</span><h3>Classify</h3><p>A Random Forest gives every detection a probability that it is a real wildfire.</p></li>
+    <li class="reveal"><span class="p-num">5</span><h3>Show &amp; share</h3><p>Draw it on a 3D globe and a map, inspect any detection, and export it for analysis.</p></li>
   </ol>
 
   <!-- The model -->
@@ -183,7 +192,7 @@
     <div class="dive-text">
       <p class="kicker">The model</p>
       <h3>A Random Forest lets many decision trees vote</h3>
-      <p>Each tree asks yes/no questions about a detection: its brightness, fire power, confidence, day or night, sensor, and how many other detections are nearby. Then the trees vote <a class="cite" href="#ref-breiman">(Breiman, 2001)</a>.</p>
+      <p>Each tree asks yes/no questions about a detection, then the trees vote <a class="cite" href="#ref-breiman">(Breiman, 2001)</a>. Ember’s model looks at the same things for both sensors: how hot the pixel is and how much power it gives off; how many other detections sit within 2 and 5&nbsp;km; whether the other sensor saw fire there too; whether it kept burning through the night and into the next day; the hour and month; and the land cover underneath.</p>
       <p>Because it weighs several clues at once, it can flag a lone hot pixel over a factory roof without throwing away a small real fire.</p>
     </div>
     <figure class="fig rf" id="rf">
@@ -234,14 +243,19 @@
     <div>
       <p class="kicker">How we test it</p>
       <h3>Scored against fires that really happened</h3>
-      <p>The model trains on one fire season and is scored on a different one it has never seen, using mapped fire perimeters as the answer key.</p>
-      <!-- ✏️ ADD YOUR RESULTS HERE LATER: replace the status line below with your numbers or a chart image -->
-      <p class="status-pill"><span class="pulse"></span>Experiment in progress: results coming soon</p>
+      <p>The model trains on one fire season and is scored on seasons it has never seen, using CAL FIRE’s mapped fire perimeters as the answer key.</p>
+      <dl class="results">
+        <div><dt>99%</dt><dd>of what it called wildfire really was, in 2021</dd></div>
+        <div><dt>92%</dt><dd>of non-wildfire detections removed, in 2021</dd></div>
+        <div><dt>126<small>/168</small></dt><dd>CAL FIRE fires caught in 2021, including 49 of the 77 with fewer than 5 detections</dd></div>
+        <div><dt>93% · 90%</dt><dd>accuracy on 2022 and 2023, where calling everything “wildfire” scores 45%</dd></div>
+      </dl>
+      <p class="results-note">Trained and tested in California only. Ember shows fires worldwide, but outside California treat its wildfire scores as a rough guide.</p>
     </div>
     <ol class="mini-steps">
-      <li>MODIS + VIIRS detections, California, Jun–Nov 2020 and 2021</li>
+      <li>Every MODIS + VIIRS detection in California, 2020 to 2023</li>
       <li>Answer key: CAL FIRE fire perimeters</li>
-      <li>Train on 2020, test on 2021 (unseen data)</li>
+      <li>Train on 2020, then test on 2021, 2022 and 2023 (never seen)</li>
       <li>Score <b>precision</b> (of everything flagged as fire, how much really was) and <b>recall</b> (of all real fires, how many were caught)</li>
       <li>Compare with keeping every detection, unfiltered</li>
     </ol>
@@ -253,12 +267,14 @@
   <div class="block-head">
     <p class="kicker">The demo</p>
     <h2>Meet <span class="grad">Ember</span>.</h2>
-    <p class="lead">A native macOS app built with SwiftUI and MapKit. It downloads live and archived detections from the NASA FIRMS API and shows every single one, exactly as reported. No hidden clustering, no silent filtering.</p>
+    <p class="lead">A native macOS app built with SwiftUI, SceneKit and MapKit. It downloads every fire NASA FIRMS has seen worldwide in the last days and draws each one on a 3D globe, exactly as reported: <span class="t-modis">MODIS</span> in orange, <span class="t-viirs">VIIRS</span> in light blue, brighter for stronger fires. No hidden clustering, no silent filtering.</p>
   </div>
 
   <figure class="shot reveal">
-    <img src="img/ember-app.jpg" width="2400" height="1401" loading="lazy" alt="The Ember app showing California. A sidebar compares 13 MODIS and 137 VIIRS detections, the map shows each detection as an orange circle or a blue diamond, and a timeline along the bottom shows detections per hour for each sensor.">
-    <figcaption>The Ember app with live NASA FIRMS data over California: MODIS and VIIRS compared side by side, every detection on the map, and detections per hour along the bottom.</figcaption>
+    <img src="img/ember-app.jpg" srcset="img/ember-app-1200.jpg 1200w, img/ember-app.jpg 2400w" sizes="(max-width: 1240px) 100vw, 1200px"
+         width="2400" height="1401" loading="lazy" decoding="async"
+         alt="The Ember app. A 3D globe centred on Africa glows with about 100,000 fire detections, orange for MODIS and light blue for VIIRS. A tag over one fire reads VIIRS 3.8 MW, click for details. The left card lists regions by number of detections, led by Central Africa with 27,565; the right card describes Central Africa.">
+    <figcaption>The Ember app with live NASA FIRMS data for the whole world: every detection of the last two days on the globe, regions ranked by how much is burning, and the details of the one you pick.</figcaption>
   </figure>
 
   <div class="try-head">
@@ -295,29 +311,29 @@
         <div id="app-inspect-body"><p class="app-empty">Nothing selected.<br>Click a point on the map.</p></div>
       </aside>
     </div>
-    <figcaption>A browser preview using the same real FIRMS detections as the globe. The full Ember app adds a satellite basemap, date ranges up to 10 days, every FIRMS column per detection, and CSV export.</figcaption>
+    <figcaption>A browser preview using the same real FIRMS detections as the globe. The full Ember app adds the 3D globe, a satellite basemap, date ranges up to 10 days, every FIRMS column per detection, the wildfire model, and CSV export.</figcaption>
   </figure>
 
   <div class="feature-grid">
     <article class="feature reveal">
       <span class="f-icon" aria-hidden="true">⚡</span>
-      <h3>Near-real-time</h3>
-      <p>Pulls fresh MODIS and VIIRS detections straight from the NASA FIRMS API, with a built-in rate limiter and an offline cache.</p>
+      <h3>Worldwide, near-real-time</h3>
+      <p>Pulls about 100,000 fresh MODIS and VIIRS detections for the whole planet from the NASA FIRMS API, with a rate limiter and an offline copy.</p>
     </article>
     <article class="feature reveal">
       <span class="f-icon" aria-hidden="true">◎</span>
       <h3>Nothing hidden</h3>
-      <p>Every detection is drawn exactly as reported. MODIS as circles, VIIRS as diamonds, so you can see the overlaps for yourself.</p>
+      <p>Every detection is drawn exactly as reported: orange MODIS and light blue VIIRS embers on the globe, circles and diamonds on the map, so you can see the overlaps for yourself.</p>
     </article>
     <article class="feature reveal">
       <span class="f-icon" aria-hidden="true">⌖</span>
       <h3>Inspect anything</h3>
-      <p>Click a point to see every FIRMS column. Overlapping detections? Step through them one at a time with <kbd>[</kbd> and <kbd>]</kbd>.</p>
+      <p>Point at a fire and Ember rings it and names it; click to see every FIRMS column. Overlapping detections? Step through them with <kbd>[</kbd> and <kbd>]</kbd>.</p>
     </article>
     <article class="feature reveal">
       <span class="f-icon" aria-hidden="true">⇩</span>
-      <h3>Ready for the model</h3>
-      <p>One keystroke (<kbd>⌘E</kbd>) exports a combined, harmonized CSV that loads straight into Python and scikit-learn.</p>
+      <h3>Wildfires only</h3>
+      <p>The model scores every detection inside the app; one click hides farm burns and false alarms. <kbd>⌘E</kbd> exports the combined CSV for Python.</p>
     </article>
   </div>
 </section>
@@ -358,10 +374,10 @@
   </div>
   <!-- ✏️ EDIT THIS: change the "Next" items to match your real plans -->
   <ol class="roadmap">
-    <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Ember viewer</h3><p>macOS app that downloads, maps, inspects and exports every MODIS and VIIRS detection.</p></li>
-    <li class="now reveal"><span class="rm-tag">In progress</span><h3>Real-fire classifier</h3><p>Training and testing the Random Forest against CAL FIRE perimeters.</p></li>
-    <li class="next reveal"><span class="rm-tag">Next</span><h3>Model inside Ember</h3><p>Run the trained model in the app so the map can highlight likely real fires.</p></li>
-    <li class="next reveal"><span class="rm-tag">Next</span><h3>Beyond California</h3><p>Test the model in other fire-prone regions to see if it holds up worldwide.</p></li>
+    <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Worldwide viewer</h3><p>macOS app that downloads, draws, inspects and exports every MODIS and VIIRS detection on Earth.</p></li>
+    <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Real-fire classifier</h3><p>Random Forest trained on 2020 and tested on 2021 to 2023 against CAL FIRE perimeters.</p></li>
+    <li class="done reveal"><span class="rm-tag">Shipped</span><h3>Model inside Ember</h3><p>Every detection gets a wildfire score in the app, with a sensitivity slider.</p></li>
+    <li class="now reveal"><span class="rm-tag">Next</span><h3>Beyond California</h3><p>Train with fire perimeters from other regions so the model holds up worldwide.</p></li>
   </ol>
 </section>
 

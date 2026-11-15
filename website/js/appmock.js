@@ -1,6 +1,6 @@
 // appmock.js: an interactive preview of the Ember app, drawn with a plain 2D canvas.
 //
-// It uses the same REAL detections as the globe (data/fires.bin) and the same land dots (data/land.bin).
+// It uses the same REAL detections as the globe (data/fires.pack) and the same land dots (data/land.pack).
 // Pick a region, toggle sensors, and click a detection to inspect it.
 
 import { loadFires, loadLand, reduceMotion } from './lib.js';
@@ -23,7 +23,7 @@ const heat = (frp) => {
 };
 
 export async function initAppMock({ canvas, regionsEl, modisBox, viirsBox, nModis, nViirs, regionName, inspector, hint, colorButtons }) {
-  const [fires, land] = await Promise.all([loadFires('data/fires.bin'), loadLand('data/land.bin')]);
+  const [fires, land] = await Promise.all([loadFires('data/fires.pack'), loadLand('data/land.pack')]);
   const ctx = canvas.getContext('2d');
   let region = REGIONS[0], colorMode = 'sensor', selected = -1, hover = -1;
   let pts = [], landPts = [], reveal = 1, revealStart = 0, raf = 0;

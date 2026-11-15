@@ -15,6 +15,14 @@ cd ~/Desktop/Ember_Wildfires/website
 python3 -m http.server 8000
 ```
 Then open http://localhost:8000. Press Ctrl-C in Terminal to stop.
+If the globe doesn't appear, reload the page: Python's built-in server sometimes drops a
+connection when the page asks for many files at once. Real hosts (Vercel, GitHub Pages) don't.
+
+## Keeping it fast
+- The globe's data is packed by `tools/pack.py` (about 70% smaller) and unpacked in `js/lib.js`.
+  To replace the data, write a new `.bin` in the format described in that script and run it.
+- `index.html` preloads everything the opening globe needs, so it downloads in parallel.
+- The app screenshot comes in two sizes; phones and normal screens get the small one.
 
 ## What's in here
 | Path | What it is |
@@ -25,16 +33,15 @@ Then open http://localhost:8000. Press Ctrl-C in Terminal to stop.
 | `js/scan.js` | 3D satellite scan / pixel-size demo |
 | `js/appmock.js` | Interactive Ember app preview (real detections by region, click to inspect) |
 | `js/main.js` | Navigation, the opening counter, Random Forest demo, starts the 3D scenes |
-| `img/ember-app.jpg` | Screenshot of the real Ember app, shown in the demo section |
-| `data/fires.bin` | Every MODIS + NOAA-20 VIIRS detection from one 24-hour FIRMS global file (packed) |
-| `data/land.bin` | Dots on land for the globe (from Natural Earth, public domain) |
+| `img/ember-app.jpg`, `img/ember-app-1200.jpg` | Screenshot of the real Ember app (two sizes; the browser picks one) |
+| `data/fires.pack` | Every MODIS + NOAA-20 VIIRS detection from one 24-hour FIRMS global file (packed by `tools/pack.py`) |
+| `data/land.pack` | Dots on land for the globe (from Natural Earth, public domain) |
 | `data/meta.json` | Counts and dates shown on the page |
 | `vendor/three/` | three.js r170 (MIT license) |
+| `tools/pack.py` | Shrinks the data files to about 30% (sorting, delta coding, gzip); `js/lib.js` unpacks them |
 
 ## Things to edit
 Search index.html for `✏️` to find the spots meant for you:
-- **Hero badge:** add your team name or Space Apps location.
-- **Results:** replace the "Experiment in progress" pill once the experiment is done.
 - **Roadmap:** adjust the "Next" items to your real plans.
 - **Team:** add teammates or a line about yourself.
 

@@ -358,6 +358,12 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .mini-steps li { counter-increment: s; position: relative; padding: 0 0 14px 38px; font-size: 0.96rem; color: var(--ink-2); line-height: 1.5; }
 .mini-steps li:last-child { padding-bottom: 0; }
 .mini-steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 600 0.72rem var(--mono); color: var(--fire-2); border: 1px solid rgba(255,140,70,0.4); }
+.results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 22px; margin: 0 0 1.3em; }
+.results div { border-top: 1px solid var(--card-line); padding-top: 12px; }
+.results dt { font: 800 clamp(1.5rem, 2.4vw, 1.9rem)/1.05 var(--display); font-stretch: 110%; letter-spacing: -0.02em; color: var(--ink); }
+.results dt small { font-size: 0.55em; color: var(--ink-3); font-weight: 600; }
+.results dd { margin: 6px 0 0; font-size: 0.88rem; line-height: 1.45; color: var(--ink-2); }
+.test .results-note { font-size: 0.86rem; color: var(--ink-3); margin: 0; }
 .status-pill { display: inline-flex !important; align-items: center; gap: 10px; margin: 0 !important; font: 500 0.82rem var(--sans) !important; color: #ffd2b0 !important; padding: 8px 14px; border-radius: 999px; background: rgba(255,106,43,0.1); border: 1px solid rgba(255,106,43,0.35); }
 
 /* Roadmap */

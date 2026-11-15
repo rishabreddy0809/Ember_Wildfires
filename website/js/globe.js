@@ -75,7 +75,7 @@ export async function initGlobe({ canvas, story, onReady, onProgress }) {
   }
 
   // ---- Load data (land dots + fire detections) ----
-  const [land, fires] = await Promise.all([loadLand('data/land.bin'), loadFires('data/fires.bin')]);
+  const [land, fires] = await Promise.all([loadLand('data/land.pack'), loadFires('data/fires.pack')]);
 
   // Land: a dot matrix that fades out on the far side of the planet
   {

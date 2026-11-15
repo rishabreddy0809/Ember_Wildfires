@@ -50,25 +50,53 @@ export function latLonToVec3(lat, lon, r = 1, out = new THREE.Vector3()) {
   return out.set(r * Math.cos(phi) * Math.sin(lam), r * Math.sin(phi), r * Math.cos(phi) * Math.cos(lam));
 }
 
-/** Reads data/fires.bin, written by the packing script: count, then lat, lon, FRP and sensor arrays. */
-export async function loadFires(url) {
-  const buf = await (await fetch(url)).arrayBuffer();
-  const n = new Uint32Array(buf, 0, 1)[0];
-  return {
-    n,
-    lat: new Int16Array(buf, 4, n),          // degrees × 100
-    lon: new Int16Array(buf, 4 + 2 * n, n),  // degrees × 100
-    frp: new Uint16Array(buf, 4 + 4 * n, n), // MW × 10
-    sensor: new Uint8Array(buf, 4 + 6 * n, n), // 0 = MODIS, 1 = VIIRS
-  };
+/** Downloads a .pack file (see tools/pack.py) and returns its bytes, un-gzipped.
+ *  If the server already un-gzipped it on the way, the bytes are used as they are. */
+async function unpack(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  let bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  return bytes;
 }
 
-/** Reads data/land.bin: evenly spaced points that fall on land. */
-export async function loadLand(url) {
-  const buf = await (await fetch(url)).arrayBuffer();
-  const n = new Uint32Array(buf, 0, 1)[0];
-  return { n, lat: new Int16Array(buf, 4, n), lon: new Int16Array(buf, 4 + 2 * n, n) };
+/** Reads the columns of a .pack: lat and lon as running differences, 16-bit columns split
+ *  into low bytes then high bytes, 8-bit columns as they are. */
+function readColumns(bytes, names) {
+  const n = new DataView(bytes.buffer, bytes.byteOffset, 4).getUint32(0, true);
+  const out = { n };
+  let at = 4;
+  for (const name of names) {
+    if (name === 'sensor') { out[name] = bytes.slice(at, at + n); at += n; continue; }
+    const lo = bytes.subarray(at, at + n), hi = bytes.subarray(at + n, at + 2 * n);
+    at += 2 * n;
+    if (name === 'frp') {
+      const a = new Uint16Array(n);
+      for (let i = 0; i < n; i++) a[i] = lo[i] | (hi[i] << 8);
+      out[name] = a;
+    } else {
+      // Int16Array wraps on assignment, which undoes the "mod 2^16" in the packer exactly.
+      const a = new Int16Array(n);
+      let v = 0;
+      for (let i = 0; i < n; i++) { v = (v + (lo[i] | (hi[i] << 8))) & 0xffff; a[i] = v; }
+      out[name] = a;
+    }
+  }
+  return out;
 }
+
+// The globe and the app preview both use these; download and decode each only once.
+const cache = new Map();
+const once = (key, make) => { if (!cache.has(key)) cache.set(key, make()); return cache.get(key); };
+
+/** Every detection: lat and lon (degrees x 100), frp (MW x 10), sensor (0 = MODIS, 1 = VIIRS). */
+export const loadFires = (url) => once(url, async () => readColumns(await unpack(url), ['lat', 'lon', 'frp', 'sensor']));
+
+/** Evenly spaced points that fall on land, for the globe's dot-matrix continents. */
+export const loadLand = (url) => once(url, async () => readColumns(await unpack(url), ['lat', 'lon']));
 
 export const smooth = (t) => t * t * (3 - 2 * t);
 export const clamp01 = (t) => Math.min(1, Math.max(0, t));
