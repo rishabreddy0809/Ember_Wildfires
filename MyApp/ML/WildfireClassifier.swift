@@ -63,14 +63,38 @@ nonisolated enum WildfireClassifier {
         }
         let x = HarmonizedFeatures.matrix(for: usable, grids: grids)
         let n = featureNames.count
-        var out: [UUID: Float] = [:]
-        out.reserveCapacity(usable.count)
-        x.withUnsafeBufferPointer { buf in
-            for (i, d) in usable.enumerated() {
-                out[d.id] = forest.predict(UnsafeBufferPointer(rebasing: buf[(i * n)..<((i + 1) * n)]))
+        // Each detection is scored on its own, so the work is spread over every core.
+        var probabilities = [Float](repeating: 0, count: usable.count)
+        x.withUnsafeBufferPointer { features in
+            probabilities.withUnsafeMutableBufferPointer { result in
+                Parallel.forEachChunk(of: usable.count) { range in
+                    for i in range {
+                        result[i] = forest.predict(UnsafeBufferPointer(rebasing: features[(i * n)..<((i + 1) * n)]))
+                    }
+                }
             }
         }
+        var out: [UUID: Float] = [:]
+        out.reserveCapacity(usable.count)
+        for (i, d) in usable.enumerated() { out[d.id] = probabilities[i] }
         return out
+    }
+}
+
+// MARK: - Parallel loops
+
+/// Splits `count` items into chunks and runs `body` on each chunk at the same time, one
+/// chunk per core. `body` must only write to places no other chunk touches.
+nonisolated enum Parallel {
+    static func forEachChunk(of count: Int, minimumChunk: Int = 2_000, _ body: (Range<Int>) -> Void) {
+        guard count > 0 else { return }
+        let chunks = max(1, min(ProcessInfo.processInfo.activeProcessorCount * 2, count / minimumChunk))
+        guard chunks > 1 else { body(0..<count); return }
+        let size = (count + chunks - 1) / chunks
+        DispatchQueue.concurrentPerform(iterations: chunks) { c in
+            let start = c * size
+            if start < count { body(start..<min(count, start + size)) }
+        }
     }
 }
 
@@ -108,11 +132,16 @@ nonisolated enum HarmonizedFeatures {
         let n = WildfireClassifier.featureNames.count
         var x = [Float](repeating: -1, count: detections.count * n)
 
-        for (i, d) in detections.enumerated() {
+        // Every row depends only on its own detection and the (read-only) grid, so the rows
+        // are filled in parallel. Each chunk writes to its own rows of `x`.
+        x.withUnsafeMutableBufferPointer { x in
+        Parallel.forEachChunk(of: detections.count) { range in
+        for i in range {
+            let d = detections[i]
             let p = pts[i]
             let mir = d.brightness, tir = d.brightness2
             let area = d.scan.flatMap { s in d.track.map { s * $0 } }
-            let t = FireQuery.utc.dateComponents([.month, .hour, .minute], from: d.acquiredAt!)
+            let t = utcParts(d.acquiredAt!)
             let selfNight = p.isNight ? 1 : 0
 
             let c = grid.context(of: p)
@@ -130,8 +159,8 @@ nonisolated enum HarmonizedFeatures {
                 area,
                 confidenceClass(d),
                 d.dayNight == .day ? 1 : 0,
-                Double(t.hour ?? 0) + Double(t.minute ?? 0) / 60,
-                Double(t.month ?? 0),
+                Double(t.hour) + Double(t.minute) / 60,
+                Double(t.month),
                 Double(c.same - 1),                      // minus itself
                 Double(c.other),
                 c.otherMaxFRP,
@@ -149,7 +178,25 @@ nonisolated enum HarmonizedFeatures {
                 if let v, !v.isNaN { x[i * n + j] = Float(v) }
             }
         }
+        }
+        }
         return x
+    }
+
+    /// Month, hour and minute of a moment in UTC, by arithmetic. It gives the same answer as
+    /// a Gregorian calendar set to UTC, and is far quicker when asked 100,000 times.
+    static func utcParts(_ date: Date) -> (month: Int, hour: Int, minute: Int) {
+        let seconds = date.timeIntervalSince1970
+        let day = (seconds / 86_400).rounded(.down)
+        let secondOfDay = Int(seconds - day * 86_400)
+        // Days since 1970 to a civil date (Howard Hinnant's algorithm).
+        let z = Int(day) + 719_468
+        let era = (z >= 0 ? z : z - 146_096) / 146_097
+        let dayOfEra = z - era * 146_097
+        let yearOfEra = (dayOfEra - dayOfEra / 1_460 + dayOfEra / 36_524 - dayOfEra / 146_096) / 365
+        let dayOfYear = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100)
+        let m = (5 * dayOfYear + 2) / 153
+        return (m < 10 ? m + 3 : m - 9, secondOfDay / 3_600, secondOfDay / 60 % 60)
     }
 
     /// One scale for both sensors: 0 = low, 1 = nominal, 2 = high.

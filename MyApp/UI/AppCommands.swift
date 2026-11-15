@@ -5,7 +5,8 @@
 //  ⌘E  Export CSV…           ⌘↩   Fetch with the current sidebar settings
 //  ⌘1  Toggle MODIS          ⌘2   Toggle VIIRS
 //  ⌘3  Harmonized ML filter (wildfires only)
-//  ⌘0  Zoom to area          ⌥⌘I  Show/hide inspector
+//  ⌘0  Zoom to area          ⌥⌘I  Show/hide details
+//  ⌥⌘1 Globe   ⌥⌘2 Map   ⌥⌘3 Model      ⌘↓ ⌘↑  Next / previous region
 //  [ ] Step through overlapping detections     Esc  Clear selection
 
 import SwiftUI
@@ -38,6 +39,11 @@ struct AppCommands: Commands {
                 .keyboardShortcut("3")
                 .disabled(!WildfireClassifier.isAvailable)
             Divider()
+            Button("Next Region") { store.stepRegion(1) }
+                .keyboardShortcut(.downArrow, modifiers: .command)
+            Button("Previous Region") { store.stepRegion(-1) }
+                .keyboardShortcut(.upArrow, modifiers: .command)
+            Divider()
             Menu("Area") {
                 ForEach(AreaPreset.all) { p in Button(p.name) { store.selectPreset(p) } }
                 Divider()
@@ -46,9 +52,14 @@ struct AppCommands: Commands {
         }
 
         CommandGroup(after: .sidebar) {
+            ForEach(Array(AppMode.allCases.enumerated()), id: \.element) { i, m in
+                Button(m.rawValue) { store.mode = m }
+                    .keyboardShortcut(KeyEquivalent(Character("\(i + 1)")), modifiers: [.command, .option])
+            }
+            Divider()
             Button("Zoom to Area") { store.zoomToArea() }
                 .keyboardShortcut("0")
-            Button(store.showInspector ? "Hide Inspector" : "Show Inspector") { store.showInspector.toggle() }
+            Button(store.showInspector ? "Hide Details" : "Show Details") { store.showInspector.toggle() }
                 .keyboardShortcut("i", modifiers: [.command, .option])
             Picker("Map Style", selection: Binding(get: { store.mapStyle }, set: { store.mapStyle = $0 })) {
                 ForEach(MapStyleChoice.allCases) { Text($0.rawValue).tag($0) }

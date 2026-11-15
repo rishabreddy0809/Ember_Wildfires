@@ -14,7 +14,7 @@ struct SettingsView: View {
             Section("NASA FIRMS MAP_KEY") {
                 if let key = SecretsLoader.mapKey() {
                     LabeledContent("Status") {
-                        Label("Loaded from Secrets.plist", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+                        Label("Loaded from Secrets.plist", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.good)
                     }
                     LabeledContent("Key") { Text(SecretsLoader.masked(key)).font(.mono) }
                 } else {
@@ -56,6 +56,7 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
+        .tint(Theme.teal)
     }
 }

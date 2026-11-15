@@ -19,60 +19,53 @@ struct MenuBarPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(nsImage: NSApplication.shared.applicationIconImage)
-                    .resizable().interpolation(.high)
-                    .frame(width: 22, height: 22)
-                    .accessibilityHidden(true)
-                Text("Ember").font(.system(size: 14, weight: .bold))
+            HStack(alignment: .firstTextBaseline) {
+                Text("Ember").font(.serif(24))
                 Spacer()
-                Text((store.loadedQuery ?? store.query).areaName).font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textSecondary)
+                Text((store.loadedQuery ?? store.query).areaName).font(.body(12.5)).foregroundStyle(Theme.ink2)
             }
-            HStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 14) {
                 ForEach(Sensor.allCases) { s in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 5) {
-                            SensorGlyph(sensor: s, size: 8)
-                            Text(s.rawValue).font(.wide(10)).tracking(1)
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 6) {
+                            SensorGlyph(sensor: s, size: 10)
+                            Text(s.rawValue).font(.body(13, .semibold))
                         }
-                        Text(store.count(s).grouped).font(.hudNumber(20)).foregroundStyle(Theme.color(s))
-                            .contentTransition(.numericText())
-                        Text(s.nominalResolution).font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.textSecondary)
+                        Text(store.count(s).grouped).font(.serif(32)).monospacedDigit().contentTransition(.numericText())
+                        Text(s.nominalResolution + " pixels").font(.body(12)).foregroundStyle(Theme.ink2)
                     }
-                    .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Theme.color(s).opacity(0.12), in: .rect(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.color(s).opacity(0.3)))
                 }
             }
+            Divide()
             Group {
                 if store.isLoading {
-                    Label(store.loadingStatus, systemImage: "antenna.radiowaves.left.and.right")
+                    Text(store.loadingStatus)
                 } else if let e = store.error {
-                    Label(e.title, systemImage: e.symbol).foregroundStyle(Theme.danger)
+                    Text(e.title).foregroundStyle(Theme.poor)
                 } else if let u = store.lastUpdated {
-                    Label("Updated \(u.formatted(.relative(presentation: .named)))\(store.isShowingCachedData ? " (cached)" : "")", systemImage: "clock")
+                    Text("Updated \(u.formatted(.relative(presentation: .named)))\(store.isShowingCachedData ? " (saved copy)" : "")")
+                } else {
+                    Text("No data yet")
                 }
             }
-            .font(.system(size: 11.5))
-            .foregroundStyle(Theme.textSecondary)
+            .font(.body(12.5))
+            .foregroundStyle(Theme.ink2)
 
-            HStack {
-                Button("Refresh", systemImage: "arrow.clockwise") { store.refresh() }
+            HStack(spacing: 10) {
+                ActionButton(title: "Refresh", primary: false) { store.refresh() }
                     .disabled(store.isLoading)
-                Spacer()
-                Button("Open Ember") {
+                ActionButton(title: "Open Ember") {
                     openWindow(id: "main")
                     NSApp.activate()
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.ember)
             }
-            .controlSize(.small)
         }
-        .padding(14)
-        .frame(width: 280)
-        .preferredColorScheme(.dark)
+        .padding(16)
+        .frame(width: 300)
+        .foregroundStyle(Theme.ink)
+        .background(LinearGradient(colors: [Theme.cream0, Theme.cream1], startPoint: .top, endPoint: .bottom))
+        .preferredColorScheme(.light)
         .task { await store.start() }
     }
 }

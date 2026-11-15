@@ -79,6 +79,38 @@ nonisolated enum FIRMSParser {
         return (detections, skipped)
     }
 
+    /// Parses every page of one sensor. Big pages are cut into pieces at line breaks and the
+    /// pieces are parsed at the same time, which makes a worldwide download several times quicker.
+    static func parse(pages: [String], sensor: Sensor, source: String) async -> (detections: [FireDetection], skipped: Int) {
+        var pieces: [String] = []
+        for page in pages { pieces += split(page, into: max(1, ProcessInfo.processInfo.activeProcessorCount)) }
+        let results = await withTaskGroup(of: (Int, [FireDetection], Int).self) { group in
+            for (i, piece) in pieces.enumerated() {
+                group.addTask {
+                    let r = await parse(csv: piece, sensor: sensor, source: source)
+                    return (i, r.detections, r.skipped)
+                }
+            }
+            var all: [(Int, [FireDetection], Int)] = []
+            for await r in group { all.append(r) }
+            return all.sorted { $0.0 < $1.0 }   // keep FIRMS's row order
+        }
+        return (results.flatMap(\.1), results.reduce(0) { $0 + $1.2 })
+    }
+
+    /// Cuts a CSV into `count` pieces of whole lines, each starting with the header row.
+    /// Files with quoted fields are left whole, because a quoted field may contain a line break.
+    static func split(_ csv: String, into count: Int) -> [String] {
+        guard count > 1, csv.utf8.count > 200_000, !csv.contains("\"") else { return [csv] }
+        let lines = csv.split(omittingEmptySubsequences: true, whereSeparator: \.isNewline)
+        guard let header = lines.first, lines.count > count * 2 else { return [csv] }
+        let rows = lines.dropFirst()
+        let size = (rows.count + count - 1) / count
+        return stride(from: rows.startIndex, to: rows.endIndex, by: size).map { start in
+            header + "\n" + rows[start..<min(start + size, rows.endIndex)].joined(separator: "\n")
+        }
+    }
+
     /// acq_time is HHMM in UTC. Leading zeros are sometimes missing ("45" means 00:45), so pad to 4 digits.
     static func normalizedTime(_ raw: String) -> String {
         let digits = raw.filter(\.isNumber)

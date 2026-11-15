@@ -26,9 +26,10 @@ nonisolated struct GeoBounds: Codable, Hashable, Sendable {
     }
 
     /// The same box as a MapKit rectangle, used to zoom the map to the area.
+    /// Latitude is held inside ±84°, because the map's projection has no poles.
     var mapRect: MKMapRect {
-        let nw = MKMapPoint(CLLocationCoordinate2D(latitude: north, longitude: west))
-        let se = MKMapPoint(CLLocationCoordinate2D(latitude: south, longitude: east))
+        let nw = MKMapPoint(CLLocationCoordinate2D(latitude: min(north, 84), longitude: west))
+        let se = MKMapPoint(CLLocationCoordinate2D(latitude: max(south, -84), longitude: east))
         return MKMapRect(x: min(nw.x, se.x), y: min(nw.y, se.y),
                          width: abs(se.x - nw.x), height: abs(se.y - nw.y))
     }
@@ -45,7 +46,13 @@ nonisolated struct GeoBounds: Codable, Hashable, Sendable {
         self.west = west; self.south = south; self.east = east; self.north = north
     }
 
+    static let world = GeoBounds(west: -180, south: -90, east: 180, north: 90)
     static let california = GeoBounds(west: -124.48, south: 32.53, east: -114.13, north: 42.01)
+
+    var isWorld: Bool { west <= -179.9 && east >= 179.9 && south <= -89.9 && north >= 89.9 }
+    func contains(latitude: Double, longitude: Double) -> Bool {
+        latitude >= south && latitude <= north && longitude >= west && longitude <= east
+    }
 }
 
 /// Built-in regions for the area picker.
@@ -55,13 +62,20 @@ nonisolated struct AreaPreset: Identifiable, Hashable, Sendable {
     var id: String { name }
 
     static let all: [AreaPreset] = [
+        AreaPreset(name: "Whole world", bounds: .world),
+        AreaPreset(name: "North America", bounds: GeoBounds(west: -170.0, south: 7.0, east: -52.0, north: 72.0)),
+        AreaPreset(name: "South America", bounds: GeoBounds(west: -82.0, south: -56.0, east: -34.0, north: 13.0)),
+        AreaPreset(name: "Europe", bounds: GeoBounds(west: -25.0, south: 34.0, east: 45.0, north: 72.0)),
+        AreaPreset(name: "Africa", bounds: GeoBounds(west: -18.0, south: -36.0, east: 52.0, north: 38.0)),
+        AreaPreset(name: "Asia", bounds: GeoBounds(west: 45.0, south: -11.0, east: 180.0, north: 78.0)),
+        AreaPreset(name: "Australia and Oceania", bounds: GeoBounds(west: 110.0, south: -48.0, east: 180.0, north: 0.0)),
         AreaPreset(name: "California", bounds: .california),
-        AreaPreset(name: "Pacific Northwest", bounds: GeoBounds(west: -124.8, south: 41.9, east: -116.4, north: 49.0)),
-        AreaPreset(name: "American Southwest", bounds: GeoBounds(west: -120.0, south: 31.3, east: -103.0, north: 37.0)),
         AreaPreset(name: "Contiguous United States", bounds: GeoBounds(west: -125.0, south: 24.4, east: -66.9, north: 49.4)),
         AreaPreset(name: "Western Canada", bounds: GeoBounds(west: -139.1, south: 48.3, east: -101.0, north: 60.0)),
         AreaPreset(name: "Amazon Basin", bounds: GeoBounds(west: -75.0, south: -15.0, east: -45.0, north: 5.0)),
         AreaPreset(name: "Mediterranean", bounds: GeoBounds(west: -10.0, south: 34.0, east: 37.0, north: 46.0)),
+        AreaPreset(name: "Central Africa", bounds: GeoBounds(west: 8.0, south: -13.0, east: 36.0, north: 13.0)),
+        AreaPreset(name: "Southeast Asia", bounds: GeoBounds(west: 92.0, south: -11.0, east: 141.0, north: 28.5)),
         AreaPreset(name: "Southeast Australia", bounds: GeoBounds(west: 140.0, south: -39.2, east: 153.7, north: -28.0)),
     ]
 }
@@ -93,8 +107,8 @@ nonisolated enum VIIRSSatellite: String, Codable, CaseIterable, Identifiable, Se
 
 /// Everything needed to repeat a download. It is saved with the cache so you know what the cached data covers.
 nonisolated struct FireQuery: Codable, Hashable, Sendable {
-    var areaName: String = "California"
-    var bounds: GeoBounds = .california
+    var areaName: String = "Whole world"
+    var bounds: GeoBounds = .world
     /// First UTC day to include.
     var startDate: Date = FireQuery.utcDay(daysAgo: 1)
     /// Number of days to include, starting at startDate. Longer ranges are split into

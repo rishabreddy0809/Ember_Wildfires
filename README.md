@@ -1,7 +1,18 @@
 # Ember: Active Fire Detection Viewer
 
 A macOS app that downloads NASA FIRMS satellite fire detections from **MODIS** and **VIIRS**
-and shows each one on a map exactly as reported, with no clustering, merging, or filtering.
+for the whole world and shows each one exactly as reported, with no clustering or merging.
+
+It opens on a 3D globe with every fire of the last two days as a glowing ember. Three views share one window:
+
+- **Globe**: turn it by dragging or flinging, scroll to zoom, click a fire or a region.
+  MODIS fires burn orange and VIIRS fires light blue; brighter and larger means stronger.
+- **Map**: the same detections on a flat MapKit map, with a per-hour timeline.
+- **Model**: how the wildfire classifier works and what it makes of the loaded data.
+
+The left card lists where it is burning, by region, busiest first. The right card describes
+whatever is selected: the world, a region, or one detection. The request card at the top left
+changes the area (whole world, a continent, a preset, or your own box), dates and satellite.
 
 ## 1. Add your MAP_KEY
 
@@ -18,28 +29,37 @@ Settings (⌘,) shows whether the key was found.
 | Action | Shortcut |
 |---|---|
 | Refresh | ⌘R |
-| Fetch with the current sidebar settings | ⌘↩ |
+| Download with the current request | ⌘↩ |
 | Cancel download | ⌘. |
 | Export combined CSV | ⌘E |
 | Show/hide MODIS, VIIRS | ⌘1, ⌘2 |
 | Harmonized ML filter (wildfires only) | ⌘3 |
+| Globe, Map, Model | ⌥⌘1, ⌥⌘2, ⌥⌘3 |
+| Next / previous region | ⌘↓, ⌘↑ |
 | Zoom to area | ⌘0 |
-| Show/hide inspector | ⌥⌘I |
+| Show/hide details | ⌥⌘I |
 | Step through overlapping detections | [ and ] |
 | Clear selection | Esc |
 
-The **Show** picker at the top of the sidebar switches between MODIS only, VIIRS only, both
-(raw), and **ML**. ML mode shows both sensors and hides detections that a random forest trained on
+The **Show** buttons switch between both sensors (raw), MODIS only, VIIRS only, and
+**Wildfires**. Wildfires mode shows both sensors and hides detections that a random forest trained on
 harmonized MODIS + VIIRS data judges are not wildfire: farm and prescribed burns, industrial heat,
 and false alarms. On California 2021 it removed 92% of non-wildfire detections at 99% precision, and caught
 126 of 168 mapped fires, including 49 of 77 fires with fewer than 5 detections. On 2022 and
 2023, which it never saw, accuracy was 93% and 90%; guessing "wildfire" every time gets 45%. It
 keeps working if MODIS or VIIRS goes offline. A
-**Sensitivity** slider trades catching more small fires against removing more false alarms. The inspector shows each detection's wildfire probability. The filter changes
-only the map; the cache and CSV export are unchanged. See `ml/README.md` for how the model was built.
+**Sensitivity** slider trades catching more small fires against removing more false alarms. The details card shows each detection's wildfire probability. The filter changes
+only what is drawn; the cache and CSV export are unchanged. See `ml/README.md` for how the model was built.
+
+**The model was trained on California only**, and its land-cover inputs cover only California.
+Elsewhere treat its answer as a rough guide: on a typical worldwide download it calls about 2%
+of detections wildfire, which says more about the model than about the fires.
 
 Click any point to see every FIRMS column for it. If several detections overlap under the
-cursor, the inspector lists all of them, one at a time.
+cursor, the details card lists all of them, one at a time.
+
+A worldwide two-day download is about 100,000 detections (roughly 8 MB). The last download is
+kept on disk, so the app opens with data even when offline.
 
 ## 3. Load the export in Python
 
@@ -64,13 +84,26 @@ viirs = df[df.sensor == "VIIRS"]   # use confidence_category (low / nominal / hi
 
 ```
 MyApp/
-  Models/      FireDetection, FireQuery (area, dates, source names)
+  Models/      FireDetection, FireQuery (area, dates, source names), WorldRegion (region names)
   Networking/  FIRMSClient (download), FIRMSError, RateLimiter
   Parsing/     CSVParser (generic), FIRMSParser (CSV → FireDetection)
   Processing/  DetectionProcessor ← add your future processing step here
   Storage/     DetectionCache (offline copy)
   Export/      CSVExporter
   Store/       FireStore (app state: download → parse → process → map)
+  Globe/       SceneKit globe: Earth materials, and all fires drawn as one mesh
   Map/         MapKit view + fast single-overlay renderer
-  UI/          Sidebar, inspector, HUD panels, menus, menu bar item, Settings
+  ML/          WildfireClassifier (features + random forest, runs on every core)
+  UI/          RootView, the three tabs, sidebar, details card, Theme + Components
+               (the cream-card design system), menus, menu bar item, Settings
+  Resources/   Earth textures, star field, Instrument Serif
 ```
+
+Debug builds are compiled with optimisation on (`SWIFT_OPTIMIZATION_LEVEL = -O`): without it
+the classifier takes about 40 s on a worldwide download instead of 0.2 s. Set it back to
+`-Onone` in the build settings if you need to step through code in the debugger.
+
+Credits: the Earth is NASA Blue Marble (day) and VIIRS Black Marble (city lights) via NASA
+GIBS, with clouds cut from a real VIIRS true-colour day and relief from SRTM. The sky is the
+NASA SVS Deep Star Map 2020. Instrument Serif is under the SIL Open Font License
+(`Resources/InstrumentSerif-OFL.txt`).

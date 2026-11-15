@@ -9,13 +9,15 @@ struct EmberApp: App {
     /// One store for the whole app, so the window, the menu bar item, and the menus all show the same data.
     @State private var store = FireStore()
 
+    init() { Theme.registerFonts() }
+
     var body: some Scene {
         Window("Ember", id: "main") {
-            MainWindow(store: store)
-                .frame(minWidth: 1100, minHeight: 680)
+            RootView(store: store)
+                .frame(minWidth: 1240, minHeight: 760)
         }
-        .defaultSize(width: 1480, height: 920)
-        .windowToolbarStyle(.unified)
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1520, height: 940)
         .commands { AppCommands(store: store) }
 
         MenuBarExtra {

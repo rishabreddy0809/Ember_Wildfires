@@ -1,7 +1,7 @@
 //  DetectionMapView.swift
 //  Wraps an AppKit MKMapView for SwiftUI, because it gives direct control over overlays and rendering.
 //  This view handles map style, the detection overlay, the query-area outline, click-to-select,
-//  the cursor coordinate readout, and zooming to the area.
+//  the cursor coordinate readout, and zooming to the area, a region, or one detection.
 
 import SwiftUI
 import MapKit
@@ -18,7 +18,7 @@ struct DetectionMapView: NSViewRepresentable {
         map.delegate = context.coordinator
         map.showsCompass = true
         map.showsZoomControls = true
-        map.showsScale = true
+        map.showsScale = false   // the base map picker sits in that corner
         map.showsPitchControl = false
         map.isPitchEnabled = false
         map.isRotateEnabled = false
@@ -47,9 +47,16 @@ struct DetectionMapView: NSViewRepresentable {
                                   animated: c.hasZoomedOnce)
             c.hasZoomedOnce = true
         }
+        // A region picked in the sidebar or on the globe: zoom to the box that holds its detections.
+        if let r = store.regionFocus, r.id != c.lastRegionFocusID {
+            c.lastRegionFocusID = r.id
+            map.setVisibleMapRect(r.region.bounds.mapRect,
+                                  edgePadding: NSEdgeInsets(top: 90, left: 60, bottom: 190, right: 60),
+                                  animated: c.hasZoomedOnce && map.window != nil)
+        }
         if let f = store.focusRequest, f.id != c.lastFocusID {
             c.lastFocusID = f.id
-            let span = min(map.region.span.latitudeDelta, 0.6)
+            let span = min(map.region.span.latitudeDelta, 1.2)
             map.setRegion(MKCoordinateRegion(center: f.coordinate, span: MKCoordinateSpan(latitudeDelta: span, longitudeDelta: span)), animated: true)
         }
     }
@@ -62,6 +69,7 @@ struct DetectionMapView: NSViewRepresentable {
         var lastZoomRequest = -1
         var hasZoomedOnce = false
         var lastFocusID = 0
+        var lastRegionFocusID = 0
 
         private var detectionOverlay: DetectionOverlay?
         private var detectionKey: FireStore.DisplayKey?
@@ -89,12 +97,13 @@ struct DetectionMapView: NSViewRepresentable {
             guard bounds != areaBounds else { return }
             areaBounds = bounds
             if let old = areaOverlay { map.removeOverlay(old) }
-            guard bounds.validationError == nil else { areaOverlay = nil; return }
+            // The whole world has no edge worth outlining.
+            guard bounds.validationError == nil, !bounds.isWorld else { areaOverlay = nil; return }
             var coords = [
-                CLLocationCoordinate2D(latitude: bounds.north, longitude: bounds.west),
-                CLLocationCoordinate2D(latitude: bounds.north, longitude: bounds.east),
-                CLLocationCoordinate2D(latitude: bounds.south, longitude: bounds.east),
-                CLLocationCoordinate2D(latitude: bounds.south, longitude: bounds.west),
+                CLLocationCoordinate2D(latitude: min(bounds.north, 84), longitude: bounds.west),
+                CLLocationCoordinate2D(latitude: min(bounds.north, 84), longitude: bounds.east),
+                CLLocationCoordinate2D(latitude: max(bounds.south, -84), longitude: bounds.east),
+                CLLocationCoordinate2D(latitude: max(bounds.south, -84), longitude: bounds.west),
             ]
             let poly = MKPolygon(coordinates: &coords, count: coords.count)
             map.addOverlay(poly, level: .aboveRoads)

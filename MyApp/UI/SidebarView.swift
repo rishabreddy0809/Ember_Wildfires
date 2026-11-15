@@ -1,486 +1,178 @@
 //  SidebarView.swift
-//  The left column. From top to bottom: brand header, the MODIS vs VIIRS comparison
-//  (counts, on/off toggles, and side-by-side statistics), the area and date controls,
-//  the data pipeline, and a status footer.
-//
-//  The overpass timeline lives on the map (see TimelineDock in MapHUD.swift), where it has room.
+//  The left column. From top to bottom: what was downloaded (click it to change the area
+//  and dates), which detections to show, the wildfire filter's sensitivity, and the list
+//  of regions that are burning, busiest first.
 
 import SwiftUI
-import AppKit
 
 struct SidebarView: View {
     @Bindable var store: FireStore
+    @State private var editing = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                BrandHeader()
-                ViewModeSection(store: store)
-                SectionRule()
-                ComparisonSection(store: store)
-                SectionRule()
-                QuerySection(store: store)
-                SectionRule()
-                PipelineSection(store: store)
+        Card(padding: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Fire data").font(.body(13, .semibold))
+                    RequestCard(store: store, editing: $editing)
+                    if store.queryIsDirty {
+                        HStack(spacing: 6) {
+                            Text("Changed, not downloaded yet.").font(.body(12)).foregroundStyle(Theme.ink2)
+                            LinkButton(title: "Download now") { store.refresh() }
+                        }
+                    }
+                    Divide()
+                    ShowSection(store: store)
+                    Divide()
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Where it's burning").font(.body(13, .semibold))
+                        Spacer()
+                        Text("\(store.visibleRegions.count) of \(store.regions.count)").font(.body(12)).foregroundStyle(Theme.ink2)
+                    }
+                    SearchField(text: $store.regionSearch, prompt: "Search regions")
+                }
+                .padding([.horizontal, .top], 16)
+                .padding(.bottom, 8)
+
+                RegionList(store: store)
+                StatusFooter(store: store)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
         }
-        .scrollIndicators(.never)
-        .safeAreaInset(edge: .bottom, spacing: 0) { StatusFooter(store: store) }
-        .navigationSplitViewColumnWidth(min: 300, ideal: 320, max: 380)
     }
 }
 
-// MARK: - Brand
+// MARK: - Request
 
-/// The app's real icon (the same one shown in the Dock) next to its name.
-private struct BrandHeader: View {
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
-                .resizable()
-                .interpolation(.high)
-                .frame(width: 44, height: 44)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Ember")
-                    .font(.system(size: 19, weight: .bold))
-                    .tracking(-0.2)
-                Text("Active fire detection")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(Theme.textSecondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.leading, -4)   // The icon image has a little empty space around it.
-        .padding(.bottom, 2)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-// MARK: - View mode
-
-/// MODIS only / VIIRS only / both raw / harmonized ML. The ML option shows both sensors and
-/// hides detections the random forest judges not to be wildfire.
-private struct ViewModeSection: View {
+/// What was asked of FIRMS. Opens the editor for the area, the dates and the sources.
+private struct RequestCard: View {
     @Bindable var store: FireStore
+    @Binding var editing: Bool
 
     var body: some View {
-        SidebarSection("Show") {
-            EmptyView()
-        } content: {
-            Picker("Show", selection: Binding(get: { store.displayMode },
-                                              set: { m in withAnimation(.snappy) { store.displayMode = m } })) {
-                ForEach(DisplayMode.allCases) { m in
-                    Text(m.shortLabel).tag(m)
-                        .selectionDisabled(m == .wildfireML && !WildfireClassifier.isAvailable)
+        let q = store.query
+        Button { editing = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: q.bounds.isWorld ? "globe.europe.africa.fill" : "scope")
+                    .font(.system(size: 17, weight: .medium)).foregroundStyle(Theme.onDark)
+                    .frame(width: 38, height: 38).background(Theme.navy, in: Circle())
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(q.areaName).font(.serif(23)).lineLimit(1).minimumScaleFactor(0.7)
+                    Text("\(dateRangeText(q)) · \(q.viirsSatellite.label)").font(.body(12)).foregroundStyle(Theme.ink2).lineLimit(1)
                 }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.ink2)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .help("⌘1 / ⌘2 toggle each sensor · ⌘3 harmonized ML filter")
-
-            Text(store.displayMode.title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(store.mlFilter ? Theme.ember : Theme.textSecondary)
-
-            if store.mlFilter {
-                MLSummary(store: store)
-            } else if !WildfireClassifier.isAvailable {
-                Text("ML model file (ember_rf.bin) is missing from the app bundle.")
-                    .font(.footnoteSmall).foregroundStyle(Theme.danger)
-            }
-        }
-    }
-}
-
-private struct MLSummary: View {
-    let store: FireStore
-
-    var body: some View {
-        let total = store.detections.count
-        let kept = store.wildfireCount
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                stat("Wildfire", kept, Theme.ember)
-                stat("Filtered out", total - kept, Theme.textSecondary)
-            }
-            if total > 0 {
-                MeterBar(fraction: Double(kept) / Double(total),
-                         fill: LinearGradient(colors: [Theme.emberHot, Theme.ember], startPoint: .leading, endPoint: .trailing),
-                         height: 4)
-            }
-            sensitivity
-            Text("Random forest on harmonized MODIS + VIIRS data: one brightness, FRP-per-km² and confidence scale; cross-sensor confirmation; day/night persistence; NLCD land cover; and 2017–2019 burn history. Filtered out = likely farm or prescribed burns, industrial heat, or false alarms. Trained on California 2020. \(WildfireClassifier.testSummary).")
-                .font(.footnoteSmall)
-                .foregroundStyle(Theme.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var sensitivity: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                HUDLabel("Sensitivity")
-                Spacer()
-                Text(String(format: "cut %.2f%@", store.mlThreshold,
-                            abs(store.mlThreshold - WildfireClassifier.threshold) < 0.001 ? " (default)" : ""))
-                    .font(.mono(10)).foregroundStyle(Theme.textSecondary)
-            }
-            Slider(value: Binding(get: { Double(store.mlThreshold) }, set: { store.mlThreshold = Float($0) }),
-                   in: 0.3...0.8, step: 0.05)
-                .controlSize(.small)
-                .tint(Theme.ember)
-            HStack {
-                Text("Catch more small fires")
-                Spacer()
-                Text("Fewer false alarms")
-            }
-            .font(.system(size: 9.5)).foregroundStyle(Theme.textTertiary)
-        }
-        .help("Probability needed to call a detection a wildfire. The default (0.60) was chosen on 2020 data. On 2021, 0.40 caught 142 of 168 fires and removed 90% of non-wildfire detections; 0.60 caught 129 and removed 92%.")
-    }
-
-    private func stat(_ label: String, _ n: Int, _ color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HUDLabel(label)
-            Text(n.grouped).font(.hudNumber(20)).foregroundStyle(color)
-                .contentTransition(.numericText(value: Double(n)))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-// MARK: - Sensor comparison
-
-/// The numbers shown for one sensor. Everything is computed from the detections exactly as FIRMS reported them.
-private struct SensorStats {
-    var count = 0
-    var medianFRP: Double?
-    var peakFRP: Double?
-    var highConfidence = 0
-    var night = 0
-
-    init(_ detections: [FireDetection], sensor: Sensor) {
-        var frps: [Double] = []
-        for d in detections where d.sensor == sensor {
-            count += 1
-            if let f = d.frp { frps.append(f) }
-            if d.dayNight == .night { night += 1 }
-            switch d.confidence {
-            case .percent(let p): if p >= 80 { highConfidence += 1 }
-            case .category(let c): if c == .high { highConfidence += 1 }
-            case .unknown: break
-            }
-        }
-        frps.sort()
-        peakFRP = frps.last
-        medianFRP = frps.isEmpty ? nil : frps[frps.count / 2]
-    }
-
-    func share(_ n: Int) -> String {
-        count == 0 ? "—" : "\(Int((Double(n) / Double(count) * 100).rounded()))%"
-    }
-}
-
-private struct ComparisonSection: View {
-    let store: FireStore
-
-    var body: some View {
-        let modis = SensorStats(store.detections, sensor: .modis)
-        let viirs = SensorStats(store.detections, sensor: .viirs)
-        let q = store.loadedQuery ?? store.query
-
-        SidebarSection("MODIS vs VIIRS") {
-            Text("\((modis.count + viirs.count).grouped) total")
-                .font(.mono(10.5))
-                .foregroundStyle(Theme.textSecondary)
-                .contentTransition(.numericText())
-        } content: {
-            HStack(spacing: 8) {
-                SensorTile(sensor: .modis, count: modis.count, subtitle: "Terra + Aqua · 1 km",
-                           isOn: store.visibleSensors.contains(.modis), shortcut: "⌘1") {
-                    withAnimation(.snappy) { store.toggle(.modis) }
-                }
-                SensorTile(sensor: .viirs, count: viirs.count, subtitle: "\(q.viirsSatellite.label) · 375 m",
-                           isOn: store.visibleSensors.contains(.viirs), shortcut: "⌘2") {
-                    withAnimation(.snappy) { store.toggle(.viirs) }
-                }
-            }
-
-            SplitBar(modis: modis.count, viirs: viirs.count)
-
-            Grid(alignment: .trailing, horizontalSpacing: 12, verticalSpacing: 7) {
-                GridRow {
-                    Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                    columnHeader(.modis)
-                    columnHeader(.viirs)
-                }
-                row("Median FRP", frp(modis.medianFRP), frp(viirs.medianFRP))
-                row("Peak FRP", frp(modis.peakFRP), frp(viirs.peakFRP))
-                row("High confidence", modis.share(modis.highConfidence), viirs.share(viirs.highConfidence))
-                row("Night-time", modis.share(modis.night), viirs.share(viirs.night))
-            }
-            .padding(.top, 2)
-
-            Text("High confidence means MODIS ≥ 80% or VIIRS “high”. These numbers describe the data. Nothing is filtered out.")
-                .font(.footnoteSmall)
-                .foregroundStyle(Theme.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private func frp(_ v: Double?) -> String {
-        guard let v else { return "—" }
-        return String(format: v >= 100 ? "%.0f MW" : "%.1f MW", v)
-    }
-
-    private func columnHeader(_ s: Sensor) -> some View {
-        HStack(spacing: 4) {
-            SensorGlyph(sensor: s, size: 6, glow: false)
-            Text(s.rawValue).font(.system(size: 9, weight: .bold)).tracking(0.6).foregroundStyle(Theme.textSecondary)
-        }
-    }
-
-    private func row(_ label: String, _ m: String, _ v: String) -> some View {
-        GridRow {
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.textSecondary)
-                .gridColumnAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text(m).font(.mono).foregroundStyle(Theme.modis)
-            Text(v).font(.mono).foregroundStyle(Theme.viirs)
-                .frame(minWidth: 64, alignment: .trailing)
-        }
-        .contentTransition(.numericText())
-    }
-}
-
-/// A sensor's count. Click it to show or hide that sensor on the map.
-private struct SensorTile: View {
-    let sensor: Sensor
-    let count: Int
-    let subtitle: String
-    let isOn: Bool
-    let shortcut: String
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        let c = Theme.color(sensor)
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    SensorGlyph(sensor: sensor, size: 9, glow: isOn)
-                    Text(sensor.rawValue)
-                        .font(.wide(10.5))
-                        .tracking(1.2)
-                    Spacer(minLength: 0)
-                    Image(systemName: isOn ? "eye.fill" : "eye.slash.fill")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(isOn ? c : Theme.textTertiary)
-                        .contentTransition(.symbolEffect(.replace))
-                }
-                Text(count.grouped)
-                    .font(.hudNumber(27))
-                    .foregroundStyle(isOn ? c : Theme.textSecondary)
-                    .contentTransition(.numericText(value: Double(count)))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Text(subtitle)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .padding(11)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(LinearGradient(colors: [c.opacity(isOn ? 0.20 : 0.03), c.opacity(isOn ? 0.05 : 0.01)],
-                                         startPoint: .top, endPoint: .bottom))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(isOn ? c.opacity(hovering ? 0.9 : 0.42) : Color.white.opacity(hovering ? 0.25 : 0.10), lineWidth: 1)
-            }
-            .opacity(isOn ? 1 : 0.6)
-            .contentShape(.rect(cornerRadius: 12))
+            .padding(12)
+            .background(.white.opacity(0.45), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+            .shadow(color: .black.opacity(0.06), radius: 6, y: 3)
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .help("\(isOn ? "Hide" : "Show") \(sensor.rawValue) detections (\(shortcut))")
-        .accessibilityLabel("\(sensor.rawValue), \(count) detections, \(isOn ? "shown" : "hidden")")
-    }
-}
-
-/// A thin bar showing how the detections split between MODIS and VIIRS.
-private struct SplitBar: View {
-    let modis: Int
-    let viirs: Int
-
-    var body: some View {
-        let total = modis + viirs
-        GeometryReader { g in
-            let f = total == 0 ? 0.5 : CGFloat(modis) / CGFloat(total)
-            HStack(spacing: 2) {
-                Capsule().fill(Theme.modis).frame(width: max(3, (g.size.width - 2) * f))
-                Capsule().fill(Theme.viirs).frame(minWidth: 3)
-            }
-            .opacity(total == 0 ? 0.2 : 1)
+        .focusEffectDisabled()
+        .help("Change the area, the dates, or the satellite")
+        .accessibilityLabel("Area: \(q.areaName), \(dateRangeText(q))")
+        .popover(isPresented: $editing, arrowEdge: .trailing) {
+            RequestEditor(store: store) { editing = false }
         }
-        .frame(height: 4)
-        .accessibilityLabel("MODIS \(modis), VIIRS \(viirs)")
     }
 }
 
-// MARK: - Query controls
-
-private struct QuerySection: View {
+/// The area, date and source controls, and the button that downloads.
+private struct RequestEditor: View {
     @Bindable var store: FireStore
+    let close: () -> Void
 
     var body: some View {
-        SidebarSection("Area & time") {
-            if store.queryIsDirty {
-                Text("NOT FETCHED YET").font(.system(size: 9, weight: .bold)).tracking(0.6)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Theme.ember.opacity(0.18), in: .capsule)
-                    .foregroundStyle(Theme.ember)
-                    .help("These settings differ from the data on the map. Press Fetch Detections to download them.")
-            }
-        } content: {
-            Menu {
-                ForEach(AreaPreset.all) { p in
-                    Button(p.name) { store.selectPreset(p) }
-                }
-                if store.visibleMapBounds != nil {
-                    Divider()
-                    Button("Use Visible Map Area") { store.useVisibleMapArea() }
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "scope").foregroundStyle(Theme.ember)
-                    Text(store.query.areaName).fontWeight(.medium)
-                    Spacer()
-                    Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.textTertiary)
-                }
-                .font(.system(size: 13))
-                .padding(.horizontal, 10).padding(.vertical, 8)
-                .card(radius: 9)
-                .contentShape(.rect(cornerRadius: 9))
-            }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .accessibilityLabel("Area: \(store.query.areaName)")
+        VStack(alignment: .leading, spacing: 14) {
+            Text("What to download").font(.serif(26))
 
-            BoundsEditor(bounds: $store.query.bounds, onEdit: { store.query.areaName = "Custom area" })
-
-            HStack(spacing: 6) {
-                Button { store.useVisibleMapArea() } label: { Label("Use Visible Map", systemImage: "viewfinder") }
-                    .disabled(store.visibleMapBounds == nil)
-                    .help("Set the area to what the map is showing now")
-                Button { store.zoomToArea() } label: { Label("Zoom to Area", systemImage: "arrow.up.left.and.arrow.down.right") }
-                    .help("Zoom the map to this area (⌘0)")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Area").font(.body(13, .semibold))
+                Menu {
+                    ForEach(AreaPreset.all) { p in Button(p.name) { store.selectPreset(p) } }
+                    if store.visibleMapBounds != nil {
+                        Divider()
+                        Button("Use the area the map is showing") { store.useVisibleMapArea() }
+                    }
+                } label: {
+                    HStack {
+                        Text(store.query.areaName).font(.body(13, .semibold))
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.ink2)
+                    }
+                    .padding(.horizontal, 11).frame(height: 32)
+                    .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+                    .contentShape(Rectangle())
+                }
+                .menuStyle(.button).buttonStyle(.plain)
+                BoundsEditor(bounds: $store.query.bounds) { store.query.areaName = "Custom area" }
+                if let problem = store.query.bounds.validationError {
+                    Text(problem).font(.body(12)).foregroundStyle(Theme.poor)
+                }
             }
-            .buttonStyle(QuietButtonStyle())
 
-            if let err = store.query.bounds.validationError {
-                Label(err, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption).foregroundStyle(Theme.danger)
-            }
+            Divide()
 
             VStack(spacing: 8) {
                 // FIRMS works in UTC days, so the picker shows UTC.
-                FormRow("Start date (UTC)") {
-                    DatePicker("Start date", selection: $store.query.startDate, in: ...Date(), displayedComponents: .date)
-                        .labelsHidden()
-                        .datePickerStyle(.field)
+                row("First day (UTC)") {
+                    DatePicker("First day", selection: $store.query.startDate, in: ...Date(), displayedComponents: .date)
+                        .labelsHidden().datePickerStyle(.field)
                         .environment(\.timeZone, TimeZone(identifier: "UTC")!)
                 }
-                FormRow("Days") {
+                row("Days") {
                     Stepper(value: $store.query.dayCount, in: 1...FireQuery.maxDayCount) {
-                        Text("\(store.query.dayCount)").font(.mono(12, .semibold)).monospacedDigit()
+                        Text("\(store.query.dayCount)").font(.body(13, .semibold)).monospacedDigit()
                     }
                 }
-                FormRow("Product") {
-                    Picker("Product", selection: $store.query.product) {
+                row("Data") {
+                    Picker("Data", selection: $store.query.product) {
                         Text("Near real-time").tag(FIRMSProduct.nearRealTime)
                         Text("Archive").tag(FIRMSProduct.standard)
                     }
-                    .labelsHidden()
-                    .fixedSize()
+                    .labelsHidden().fixedSize()
                     .help("Near real-time arrives within about 3 hours. Archive is reprocessed, science-quality data and lags by a few months.")
                 }
-                FormRow("VIIRS satellite") {
+                row("VIIRS satellite") {
                     Picker("VIIRS satellite", selection: $store.query.viirsSatellite) {
                         ForEach(VIIRSSatellite.allCases) { Text($0.label).tag($0) }
                     }
-                    .labelsHidden()
-                    .fixedSize()
+                    .labelsHidden().fixedSize()
                 }
             }
-            .padding(.top, 2)
-            .tint(.white)
 
             if store.query.viirsSatellite == .suomiNPP {
-                Label("Suomi NPP stopped delivering new fire data on Nov 2, 2026. Use earlier dates, or choose NOAA-20/21 for recent fires.",
-                      systemImage: "info.circle.fill")
-                    .font(.footnoteSmall)
-                    .foregroundStyle(Theme.modis)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text("Suomi NPP stopped delivering new fire data on Nov 2, 2026. Use earlier dates, or choose NOAA-20 or NOAA-21 for recent fires.")
+                    .font(.body(12)).foregroundStyle(Theme.ink2).fixedSize(horizontal: false, vertical: true)
             }
 
-            RequestSummary(query: store.query)
+            let requests = store.query.dayChunks.count * 2
+            Text("\(store.query.modisSource) + \(store.query.viirsSource), \(requests) request\(requests == 1 ? "" : "s"). A whole-world day is roughly 50,000 detections.")
+                .font(.body(12)).foregroundStyle(Theme.ink2).fixedSize(horizontal: false, vertical: true)
+                .help("FIRMS allows 5 days per request, so longer ranges are split into several requests for each sensor.")
 
-            Button { store.refresh() } label: {
-                Label(store.isLoading ? "Fetching…" : "Fetch Detections", systemImage: "antenna.radiowaves.left.and.right")
+            ActionButton(title: store.isLoading ? "Downloading…" : "Download detections") {
+                store.refresh()
+                close()
             }
-            .buttonStyle(EmberButtonStyle())
             .disabled(store.isLoading || store.query.bounds.validationError != nil)
             .keyboardShortcut(.return, modifiers: .command)
-            .help("Download detections for this area and these dates (⌘↩)")
         }
+        .padding(20)
+        .frame(width: 340)
+        .foregroundStyle(Theme.ink)
+        .background(Theme.cream0)
     }
-}
 
-/// A label on the left and a control on the right.
-private struct FormRow<Content: View>: View {
-    let label: String
-    @ViewBuilder var content: Content
-    init(_ label: String, @ViewBuilder content: () -> Content) { self.label = label; self.content = content() }
-
-    var body: some View {
+    private func row<C: View>(_ label: String, @ViewBuilder _ content: () -> C) -> some View {
         HStack {
-            Text(label).font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
+            Text(label).font(.body(13)).foregroundStyle(Theme.ink2)
             Spacer(minLength: 8)
-            content
+            content()
         }
-        .frame(minHeight: 22)
-    }
-}
-
-/// Spells out exactly what will be requested from FIRMS.
-private struct RequestSummary: View {
-    let query: FireQuery
-
-    var body: some View {
-        let requests = query.dayChunks.count * 2
-        VStack(alignment: .leading, spacing: 3) {
-            Text("\(FireQuery.firmsDateString(query.startDate)) → \(FireQuery.firmsDateString(query.endDate)) · \(requests) request\(requests == 1 ? "" : "s")")
-            Text("\(query.modisSource) + \(query.viirsSource)")
-                .foregroundStyle(Theme.textTertiary)
-        }
-        .font(.mono(10))
-        .foregroundStyle(Theme.textSecondary)
-        .padding(.horizontal, 10).padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.black.opacity(0.25), in: .rect(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.hairline))
-        .textSelection(.enabled)
-        .help("FIRMS allows 5 days per request, so longer ranges are split into several requests for each sensor.")
+        .frame(minHeight: 24)
     }
 }
 
@@ -504,71 +196,124 @@ private struct BoundsEditor: View {
 
     private func field(_ label: String, _ name: String, _ kp: WritableKeyPath<GeoBounds, Double>) -> some View {
         HStack(spacing: 6) {
-            Text(label).font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.textTertiary)
+            Text(label).font(.body(11, .bold)).foregroundStyle(Theme.ink3)
             TextField(name, value: Binding(get: { bounds[keyPath: kp] },
                                            set: { bounds[keyPath: kp] = $0; onEdit() }),
                       format: .number.precision(.fractionLength(0...4)))
-                .textFieldStyle(.plain)
-                .font(.mono(12))
-                .multilineTextAlignment(.trailing)
+                .textFieldStyle(.plain).font(.mono(12)).multilineTextAlignment(.trailing)
                 .accessibilityLabel(name)
         }
-        .padding(.horizontal, 9).padding(.vertical, 6)
-        .card(radius: 8)
+        .padding(.horizontal, 10).frame(height: 30)
+        .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
     }
 }
 
-// MARK: - Pipeline
+// MARK: - Show
 
-/// Shows the data flow and where a future processing step will go.
-private struct PipelineSection: View {
+/// Both sensors, one sensor, or only what the model classifies as wildfire.
+private struct ShowSection: View {
     let store: FireStore
 
     var body: some View {
-        SidebarSection("Data pipeline") {
-            HStack(spacing: 5) {
-                chip("Download")
-                arrow
-                chip("Parse")
-                arrow
-                ForEach(store.pipeline.steps, id: \.name) { step in
-                    chip(step.name, highlight: true)
-                    arrow
-                }
-                if store.mlFilter {
-                    chip("ML filter", highlight: true)
-                    arrow
-                }
-                chip("Map")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Show").font(.body(13, .semibold))
+                Spacer()
+                Text("\(store.world.count.grouped) shown").font(.body(12)).foregroundStyle(Theme.ink2)
+                    .contentTransition(.numericText())
             }
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            HStack(spacing: 5) {
+                ForEach(DisplayMode.allCases) { m in
+                    PillTab(m.shortLabel, selected: store.displayMode == m, compact: true) {
+                        withAnimation(.snappy) { store.displayMode = m }
+                    }
+                    .disabled(m == .wildfireML && !WildfireClassifier.isAvailable)
+                }
+            }
+            .help("⌘1 and ⌘2 switch each sensor on and off. ⌘3 switches the wildfire filter.")
 
-            Text(store.mlFilter
-                 ? "The ML filter only changes what the map shows. Cache and CSV export keep every detection exactly as FIRMS reported it."
-                 : "Every detection is shown exactly as FIRMS reported it. Processing steps are added in DetectionProcessor.swift.")
-                .font(.footnoteSmall)
-                .foregroundStyle(Theme.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if store.skippedRows > 0 {
-                Label("\(store.skippedRows) rows skipped (invalid coordinates)", systemImage: "exclamationmark.triangle")
-                    .font(.caption2).foregroundStyle(Theme.modis)
+            if store.mlFilter {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Filter sensitivity").font(.body(13, .semibold))
+                    Spacer()
+                    Text(String(format: "%.0f%%", store.mlThreshold * 100)).font(.body(13)).foregroundStyle(Theme.ink2)
+                }
+                .padding(.top, 2)
+                PaperSlider(value: Binding(get: { Double(store.mlThreshold) }, set: { store.setThreshold(Float($0)) }),
+                            range: 0.3...0.8)
+                    .accessibilityLabel("Filter sensitivity")
+                Text("How sure the model must be to keep a detection. Slide left to catch more small fires, right for fewer false alarms.")
+                    .font(.body(12)).foregroundStyle(Theme.ink2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(caption).font(.body(12)).foregroundStyle(Theme.ink2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
-    private var arrow: some View {
-        Image(systemName: "arrow.right").font(.system(size: 8, weight: .bold)).foregroundStyle(Theme.textTertiary)
+    private var caption: String {
+        if !WildfireClassifier.isAvailable { return "The wildfire model file (ember_rf.bin) is missing from the app." }
+        switch store.displayMode {
+        case .both: return "Every detection from both sensors, exactly as FIRMS reported it."
+        case .modis: return "MODIS only: Terra and Aqua, 1 km pixels."
+        case .viirs: return "VIIRS only: 375 m pixels, about seven times finer than MODIS."
+        case .wildfireML: return ""
+        }
     }
+}
 
-    private func chip(_ text: String, highlight: Bool = false) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .semibold))
-            .padding(.horizontal, 7).padding(.vertical, 4)
-            .background(highlight ? Theme.ember.opacity(0.14) : Theme.panelRaised, in: .capsule)
-            .overlay(Capsule().strokeBorder(highlight ? Theme.ember.opacity(0.55) : .clear, style: StrokeStyle(lineWidth: 1, dash: [3, 2])))
-            .foregroundStyle(highlight ? Theme.ember : Theme.textSecondary)
+// MARK: - Regions
+
+private struct RegionList: View {
+    let store: FireStore
+
+    var body: some View {
+        let list = store.visibleRegions
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(list) { r in
+                    Button { store.selectRegion(r) } label: {
+                        RegionRow(region: r, selected: store.selectedRegionID == r.id)
+                    }
+                    .buttonStyle(.plain)
+                    .focusEffectDisabled()
+                }
+                if list.isEmpty {
+                    Text(store.regions.isEmpty ? (store.isLoading ? "Downloading…" : "No detections to list.") : "No region matches.")
+                        .font(.body(12.5)).foregroundStyle(Theme.ink3)
+                        .frame(maxWidth: .infinity).padding(.vertical, 28)
+                }
+            }
+            .padding(.horizontal, 8).padding(.bottom, 8)
+        }
+        .scrollIndicators(.never)
+    }
+}
+
+private struct RegionRow: View {
+    let region: RegionSummary
+    let selected: Bool
+    @State private var hover = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            StatusIcon(color: region.activity.color, symbol: region.activity.symbol, size: 20)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(region.name).font(.body(13.5, .semibold)).lineLimit(1)
+                Text("\(region.continent) · peak \(megawatts(region.peakFRP))").font(.body(12))
+                    .foregroundStyle(selected ? Color.white.opacity(0.7) : Theme.ink2).lineLimit(1)
+            }
+            Spacer(minLength: 6)
+            Text(region.count.grouped).font(.serif(25)).monospacedDigit().contentTransition(.numericText())
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .foregroundStyle(selected ? .white : Theme.ink)
+        .background(selected ? Theme.tealDark : (hover ? Theme.chip : .clear), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contentShape(Rectangle())
+        .onHover { hover = $0 }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(region.name), \(region.count) detections, \(region.activity.rawValue)")
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }
 
@@ -578,52 +323,39 @@ private struct StatusFooter: View {
     let store: FireStore
 
     var body: some View {
-        HStack(spacing: 9) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 7, height: 7)
-                .shadow(color: statusColor, radius: 4)
-                .phaseAnimator([1.0, 0.35]) { v, p in v.opacity(store.isLoading ? p : 1) } animation: { _ in .easeInOut(duration: 0.6) }
-
-            VStack(alignment: .leading, spacing: 1) {
-                if store.isLoading {
-                    Text(store.loadingStatus.isEmpty ? "Working…" : store.loadingStatus)
-                } else if let updated = store.lastUpdated {
-                    TimelineView(.periodic(from: .now, by: 30)) { _ in
-                        Text("Updated \(updated, format: .relative(presentation: .named))")
+        VStack(spacing: 0) {
+            Divide()
+            HStack(spacing: 8) {
+                Circle().fill(color).overlay(Circle().strokeBorder(Theme.ink.opacity(0.6), lineWidth: 1)).frame(width: 10, height: 10)
+                Group {
+                    if store.isLoading {
+                        Text(store.loadingStatus.isEmpty ? "Working…" : store.loadingStatus)
+                    } else if let updated = store.lastUpdated {
+                        TimelineView(.periodic(from: .now, by: 30)) { _ in
+                            Text("Updated \(updated, format: .relative(presentation: .named))")
+                        }
+                    } else {
+                        Text("No data yet")
                     }
-                } else {
-                    Text("No data yet")
                 }
-                if let updated = store.lastUpdated, !store.isLoading {
-                    Text(updated.formatted(date: .abbreviated, time: .shortened))
-                        .foregroundStyle(Theme.textTertiary)
+                .font(.body(12.5)).foregroundStyle(Theme.ink2).lineLimit(1)
+                Spacer()
+                if store.lastUpdated != nil, !store.isLoading {
+                    Text(store.isShowingCachedData ? "Saved copy" : "Live")
+                        .font(.body(11.5, .semibold))
+                        .padding(.horizontal, 9).frame(height: 22)
+                        .background(store.isShowingCachedData ? Theme.fair.opacity(0.45) : Theme.mint, in: Capsule())
                 }
             }
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(Theme.textSecondary)
-
-            Spacer()
-
-            if store.lastUpdated != nil, !store.isLoading {
-                Text(store.isShowingCachedData ? "CACHED" : "LIVE")
-                    .font(.system(size: 9, weight: .bold)).tracking(0.8)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .foregroundStyle(statusColor)
-                    .overlay(Capsule().strokeBorder(statusColor.opacity(0.5)))
-            }
+            .padding(.horizontal, 16).padding(.vertical, 11)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.bar)
-        .overlay(alignment: .top) { SectionRule() }
         .accessibilityElement(children: .combine)
     }
 
-    private var statusColor: Color {
+    private var color: Color {
         if store.isLoading { return Theme.viirs }
-        if store.error != nil { return Theme.danger }
-        if store.isShowingCachedData { return Theme.modis }
-        return store.lastUpdated == nil ? .gray : Theme.ok
+        if store.error != nil { return Theme.poor }
+        if store.isShowingCachedData { return Theme.fair }
+        return store.lastUpdated == nil ? Theme.ink3 : Theme.good
     }
 }
