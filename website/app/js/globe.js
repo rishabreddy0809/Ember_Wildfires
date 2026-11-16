@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 
 const R = 1;                      // Earth radius
-const MIN_DIST = 1.18, MAX_DIST = 6;
+const MIN_DIST = 1.08, MAX_DIST = 6;
 export const HOME_DIST = 4.3;
 const REACH = 16;                 // how close (in CSS pixels) the pointer must be to a fire
 
@@ -38,34 +38,113 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
     uNight: { value: tex('img/earth_night.jpg') },
     uSun: { value: sunDir },
   };
-  const earth = new THREE.Mesh(new THREE.SphereGeometry(R, 160, 120), new THREE.ShaderMaterial({
-    uniforms: earthUniforms,
-    vertexShader: /* glsl */`
+  const earthVertex = /* glsl */`
       varying vec2 vUv; varying vec3 vN; varying vec3 vView;
       void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vN = normalize(w.xyz);
-        vView = normalize(cameraPosition - w.xyz); gl_Position = projectionMatrix * viewMatrix * w; }`,
+        vView = normalize(cameraPosition - w.xyz); gl_Position = projectionMatrix * viewMatrix * w; }`;
+  // Lights a day colour the way the globe does: sun, dusk glow, city lights at night, haze.
+  const shade = /* glsl */`
+      vec3 shade(vec3 dayTex, vec3 nightTex, vec3 n, vec3 view, vec3 sun){
+        float ndl = dot(n, sun);
+        float light = smoothstep(-0.12, 0.25, ndl);
+        vec3 day = pow(dayTex, vec3(2.2)) * 0.95;
+        vec3 lit = day * (0.05 + 1.1 * light);
+        float dusk = exp(-(ndl * ndl) / 0.02);
+        lit = mix(lit, lit * vec3(1.35, 0.72, 0.42), dusk * 0.5);
+        float night = 1. - smoothstep(-0.18, 0.06, ndl);
+        vec3 city = pow(nightTex, vec3(2.2)) * vec3(1.0, 0.78, 0.5) * 1.8 * night;
+        float rim = pow(1. - max(dot(n, view), 0.), 3.);
+        vec3 col = lit + city + vec3(0.18, 0.42, 1.0) * rim * (0.08 + 0.6 * light);
+        return pow(col, vec3(1. / 2.2));
+      }`;
+  const earth = new THREE.Mesh(new THREE.SphereGeometry(R, 160, 120), new THREE.ShaderMaterial({
+    uniforms: earthUniforms,
+    vertexShader: earthVertex,
     fragmentShader: /* glsl */`
       uniform sampler2D uDay, uNight; uniform vec3 uSun;
       varying vec2 vUv; varying vec3 vN; varying vec3 vView;
-      void main(){
-        float ndl = dot(vN, uSun);
-        float light = smoothstep(-0.12, 0.25, ndl);
-        vec3 day = texture2D(uDay, vUv).rgb;
-        day = pow(day, vec3(2.2)) * 0.95;                      // to linear
-        vec3 lit = day * (0.05 + 1.1 * light);
-        float dusk = exp(-(ndl * ndl) / 0.02);                 // warm light along the day/night line
-        lit = mix(lit, lit * vec3(1.35, 0.72, 0.42), dusk * 0.5);
-        float night = 1. - smoothstep(-0.18, 0.06, ndl);
-        vec3 city = pow(texture2D(uNight, vUv).rgb, vec3(2.2)) * vec3(1.0, 0.78, 0.5) * 1.8 * night;
-        float rim = pow(1. - max(dot(vN, vView), 0.), 3.);     // haze toward the edge
-        vec3 col = lit + city + vec3(0.18, 0.42, 1.0) * rim * (0.08 + 0.6 * light);
-        gl_FragColor = vec4(pow(col, vec3(1. / 2.2)), 1.);
-      }`,
+      ${shade}
+      void main(){ gl_FragColor = vec4(shade(texture2D(uDay, vUv).rgb, texture2D(uNight, vUv).rgb, vN, vView, uSun), 1.); }`,
   }));
   // Longitude 0 must face +z to match toVec(): turn the texture seam to the back.
   earth.rotation.y = -Math.PI / 2;
   scene.add(earth);
 
+  // ---------------------------------------------------------------- sharp detail when zoomed in
+  // The globe picture is one 4096-pixel image (about 10 km a pixel), which blurs up close. When
+  // you zoom in, the area in view is fetched from NASA GIBS (Blue Marble, 500 m) at the right
+  // detail and laid over the globe, like a map app loading sharper tiles.
+  const GIBS = 'https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/BlueMarble_NextGeneration/default/500m';
+  const tileCache = new Map();   // url -> Promise<image or null>
+  const loadTile = (url) => {
+    if (!tileCache.has(url)) tileCache.set(url, new Promise((ok) => {
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = () => ok(img); img.onerror = () => ok(null); img.src = url;
+    }));
+    return tileCache.get(url);
+  };
+  const patchMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { uDay: { value: null }, uNight: earthUniforms.uNight, uSun: { value: sunDir }, uFade: { value: 0 } },
+    vertexShader: earthVertex,
+    fragmentShader: /* glsl */`
+      uniform sampler2D uDay, uNight; uniform vec3 uSun; uniform float uFade;
+      varying vec2 vUv; varying vec3 vN; varying vec3 vView;
+      ${shade}
+      void main(){
+        vec2 g = vec2(atan(vN.x, vN.z) / 6.2831853 + 0.5, asin(clamp(vN.y, -1., 1.)) / 3.1415927 + 0.5);
+        float edge = min(min(vUv.x, 1. - vUv.x), min(vUv.y, 1. - vUv.y));
+        float a = smoothstep(0.0, 0.06, edge) * uFade;       // soft border, fades in when ready
+        gl_FragColor = vec4(shade(min(pow(texture2D(uDay, vUv).rgb, vec3(0.72)) * 1.08, vec3(1.)), texture2D(uNight, g).rgb, vN, vView, uSun), a);
+      }`,
+  });
+  const patch = new THREE.Mesh(new THREE.BufferGeometry(), patchMat);
+  patch.rotation.y = -Math.PI / 2;
+  patch.renderOrder = 1;
+  patch.visible = false;
+  scene.add(patch);
+  let patchKey = '', patchJob = 0, patchWant = 0;
+
+  /** Fetches the tiles for what's in view and shows them, if zoomed in far enough. */
+  async function updatePatch() {
+    if (view.dist > 2.3) { patchWant = 0; return; }
+    const dpp = degPerPixel() / Math.max(1, renderer.getPixelRatio() * 0.75);   // degrees per screen pixel
+    const z = Math.max(3, Math.min(7, Math.ceil(Math.log2(288 / (512 * dpp)))));
+    const tileDeg = 288 / 2 ** z, cols = Math.round(360 / tileDeg), rows = Math.round(180 / tileDeg);
+    const half = Math.min(70, degPerPixel() * Math.max(canvas.clientWidth, canvas.clientHeight) * 0.9);
+    const halfLon = Math.min(170, half / Math.max(0.15, Math.cos(view.lat * Math.PI / 180)));
+    const r0 = Math.max(0, Math.floor((90 - (view.lat + half)) / tileDeg)), r1 = Math.min(rows - 1, Math.floor((90 - (view.lat - half)) / tileDeg));
+    const c0 = Math.floor((wrap(view.lon) + 180 - halfLon) / tileDeg), c1 = Math.floor((wrap(view.lon) + 180 + halfLon) / tileDeg);
+    const key = `${z}/${r0}-${r1}/${c0}-${c1}`;
+    patchWant = 1;
+    if (key === patchKey) return;
+    patchKey = key;
+    const job = ++patchJob;
+    const nx = c1 - c0 + 1, ny = r1 - r0 + 1;
+    const scale = Math.min(1, 4096 / (512 * Math.max(nx, ny)));
+    const ts = Math.floor(512 * scale);
+    const cv = document.createElement('canvas'); cv.width = nx * ts; cv.height = ny * ts;
+    const ctx = cv.getContext('2d');
+    const jobs = [];
+    for (let row = r0; row <= r1; row++) for (let c = c0; c <= c1; c++) {
+      const col = ((c % cols) + cols) % cols;
+      jobs.push(loadTile(`${GIBS}/${z}/${row}/${col}.jpeg`).then((img) => { if (img) ctx.drawImage(img, (c - c0) * ts, (row - r0) * ts, ts, ts); }));
+    }
+    await Promise.all(jobs);
+    if (job !== patchJob) return;   // the view moved on while loading
+    const lon0 = c0 * tileDeg - 180, lat0 = 90 - r0 * tileDeg;
+    patch.geometry.dispose();
+    patch.geometry = new THREE.SphereGeometry(R * 1.0003, Math.min(128, nx * 16), Math.min(128, ny * 16),
+      (lon0 + 180) * Math.PI / 180, nx * tileDeg * Math.PI / 180, (90 - lat0) * Math.PI / 180, ny * tileDeg * Math.PI / 180);
+    patchMat.uniforms.uDay.value?.dispose();
+    const t = new THREE.CanvasTexture(cv);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    patchMat.uniforms.uDay.value = t;
+    patch.visible = true;
+  }
+
+  let cloudsOn = 1;
   const cloudMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
     uniforms: { uClouds: { value: tex('img/earth_clouds.jpg', false) }, uSun: { value: sunDir }, uOn: { value: 1 } },
@@ -99,13 +178,13 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
   }
 
   // ---------------------------------------------------------------- fires
-  const fireUniforms = { uTime: { value: 0 }, uScale: { value: 1 }, uBoost: { value: 1 }, uPR: { value: renderer.getPixelRatio() } };
+  const fireUniforms = { uTime: { value: 0 }, uScale: { value: 1 }, uZoom: { value: 1 }, uBoost: { value: 1 }, uPR: { value: renderer.getPixelRatio() } };
   const fireMat = new THREE.ShaderMaterial({
     // Normal (not additive) blending: where thousands of fires overlap, they keep their own
     // orange or blue instead of adding up to white.
     uniforms: fireUniforms, transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     vertexShader: /* glsl */`
-      uniform float uTime, uScale, uBoost, uPR;
+      uniform float uTime, uScale, uZoom, uBoost, uPR;
       attribute float aFrp, aSensor, aShow, aSeed;
       varying vec3 vColor; varying float vA; varying float vHot;
       void main(){
@@ -120,7 +199,9 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
         vHot = t;
         float flicker = 0.88 + 0.12 * sin(uTime * (2.2 + aSeed * 3.) + aSeed * 50.);
         float size = (0.0060 + 0.0090 * t) * (aSensor < .5 ? 1.5 : 1.) * uBoost;   // in Earth radii
-        gl_PointSize = aShow < .5 ? 0. : clamp(size * flicker * uScale / -mv.z, 1.4 * uPR, 64. * uPR);
+        // Size on screen: what it is at the starting view, growing only gently as you zoom in, so
+        // fires stay points instead of becoming blobs.
+        gl_PointSize = aShow < .5 ? 0. : clamp(size * flicker * uScale / 3.3 * pow(uZoom, 0.38), 1.4 * uPR, 40. * uPR);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */`
@@ -333,7 +414,7 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
   }
 
   // ---------------------------------------------------------------- loop
-  let dirty = true, last = performance.now(), raf = 0, running = true;
+  let dirty = true, last = performance.now(), raf = 0, running = true, patchClock = 0;
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
@@ -383,6 +464,16 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
     if (hoverI >= 0 && moving && lastPointer) { const p = screenOf(data.lat[hoverI], data.lon[hoverI]); onHover?.(hoverI, p.x + canvas.getBoundingClientRect().left, p.y + canvas.getBoundingClientRect().top); }
 
     fireUniforms.uTime.value = now / 1000;
+    fireUniforms.uZoom.value = (HOME_DIST - 1) / (view.dist - 1);
+    const near = 1 - THREE.MathUtils.smoothstep(view.dist, 1.5, 2.3);          // 1 = zoomed in
+    cloudMat.uniforms.uOn.value = cloudsOn * (1 - near);
+    clouds.visible = cloudMat.uniforms.uOn.value > 0.01;
+    const settled = Math.abs(target.dist - view.dist) < 0.02 * view.dist && Math.abs(wrap(target.lon - view.lon)) < 0.5 && Math.abs(target.lat - view.lat) < 0.5;
+    if (settled && !drag && (patchClock += dt) > 0.15) { patchClock = 0; updatePatch(); }
+    if (!settled) patchClock = 0;
+    const fadeTo = patchWant ? near : 0;
+    patchMat.uniforms.uFade.value += (fadeTo - patchMat.uniforms.uFade.value) * Math.min(1, dt * 5);
+    patch.visible = patchMat.uniforms.uFade.value > 0.01;
     renderer.render(scene, camera);
     onMove?.();
     dirty = false;
@@ -396,8 +487,9 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
   return {
     setData, setShown, flyTo, select, screenOf, findFire,
     get view() { return { ...view }; },
+    get debug() { return { patchKey, patchWant, fade: patchMat.uniforms.uFade.value, visible: patch.visible, tiles: tileCache.size, tex: patchMat.uniforms.uDay.value?.image?.width, dist: view.dist }; },
     setBoost(k) { fireUniforms.uBoost.value = k; },
-    setClouds(on) { cloudMat.uniforms.uOn.value = on ? 1 : 0; clouds.visible = on; },
+    setClouds(on) { cloudsOn = on ? 1 : 0; },
     setSpin(on) { spin = on; },
     zoom(f) { target.dist = clamp(1 + (target.dist - 1) * f, MIN_DIST, MAX_DIST); },
   };
