@@ -55,69 +55,6 @@ enum Bodies {
         NSImage(size: NSSize(width: 2, height: 2), flipped: false) { r in NSColor.white.setFill(); r.fill(); return true }
     }()
 
-    /// Glowing latitude/longitude lines drawn in the fragment shader.
-    static func gridMaterial(tint: NSColor) -> SCNMaterial {
-        let m = SCNMaterial()
-        m.lightingModel = .constant
-        m.diffuse.contents = whitePixel   // needed so UVs reach the shader
-        m.blendMode = .add
-        m.writesToDepthBuffer = false
-        m.shaderModifiers = [.fragment: """
-        #pragma arguments
-        float amount;
-        float3 tint;
-        #pragma transparent
-        #pragma body
-        float2 guv = _surface.diffuseTexcoord * float2(24.0, 12.0);
-        float2 gd = abs(fract(guv) - 0.5);
-        float2 gw = fwidth(guv) * 1.3;
-        float lx = (1.0 - smoothstep(0.0, gw.x, 0.5 - gd.x)) * smoothstep(0.0, 0.2, sin(_surface.diffuseTexcoord.y * 3.14159265));
-        float ly = 1.0 - smoothstep(0.0, gw.y, 0.5 - gd.y);
-        float gl = max(lx, ly);
-        float3 gn = normalize(_surface.normal);
-        float3 gv = normalize(_surface.view);
-        float rim = 1.0 - saturate(dot(gn, gv));
-        float shimmer = 0.55 + 0.45 * sin(_surface.diffuseTexcoord.y * 60.0 - scn_frame.time * 1.2);
-        float ga = gl * amount * (0.22 + 0.78 * rim) * shimmer;
-        _output.color = float4(tint * ga, ga);
-        """]
-        let c = tint.usingColorSpace(.deviceRGB) ?? tint
-        m.setValue(NSValue(scnVector3: SCNVector3(c.redComponent, c.greenComponent, c.blueComponent)), forKey: "tint")
-        m.setValue(NSNumber(value: Float(0)), forKey: "amount")
-        return m
-    }
-
-    /// Aurora curtains around both magnetic poles, visible on the night side.
-    static func auroraMaterial() -> SCNMaterial {
-        let m = SCNMaterial()
-        m.lightingModel = .constant
-        m.diffuse.contents = whitePixel
-        m.blendMode = .add
-        m.writesToDepthBuffer = false
-        m.shaderModifiers = [.fragment: """
-        #pragma arguments
-        float amount;
-        float3 sunDir;
-        #pragma transparent
-        #pragma body
-        float2 auv = _surface.diffuseTexcoord;
-        float alat = abs(0.5 - auv.y) * 180.0;
-        float alon = auv.x * 6.2831853;
-        float at = scn_frame.time;
-        float wob = 3.0 * sin(alon * 3.0 + at * 0.3) + 1.5 * sin(alon * 7.0 - at * 0.5);
-        float band = exp(-pow((alat - 67.0 - wob) / 3.2, 2.0));
-        float curtains = 0.5 + 0.5 * sin(alon * 40.0 + at * 1.3 + sin(alon * 9.0 - at * 0.7) * 2.0);
-        float andl = dot(normalize(_surface.normal), normalize(sunDir));
-        float anight = 1.0 - smoothstep(-0.3, 0.15, andl);
-        float aa = band * (0.35 + 0.65 * curtains) * anight * amount;
-        float3 ac = mix(float3(0.15, 1.0, 0.5), float3(0.55, 0.3, 1.0), saturate((alat - 67.0 - wob) / 5.0 + 0.35));
-        _output.color = float4(ac * aa * 1.6, aa);
-        """]
-        m.setValue(NSValue(scnVector3: sunDirection), forKey: "sunDir")
-        m.setValue(NSNumber(value: Float(0)), forKey: "amount")
-        return m
-    }
-
     static func earthMaterial() -> SCNMaterial {
         let m = SCNMaterial()
         m.lightingModel = .physicallyBased

@@ -85,9 +85,6 @@ struct EffectsBar: View {
     var body: some View {
         HStack(spacing: 6) {
             toggle("Clouds", $store.fx.clouds)
-            toggle("Grid", $store.fx.grid)
-            toggle("Aurora", $store.fx.aurora)
-            toggle("Pulse", $store.fx.pulse)
             toggle("Spin", $store.fx.spin)
         }
         .padding(6)

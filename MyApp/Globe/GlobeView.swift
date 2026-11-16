@@ -126,7 +126,7 @@ struct GlobeView: NSViewRepresentable {
         let camera = SCNNode()
 
         private let earthPivot = SCNNode(), earthTilt = SCNNode(), earthSpin = SCNNode(), earth = SCNNode()
-        private let clouds = SCNNode(), grid = SCNNode(), aurora = SCNNode()
+        private let clouds = SCNNode()
         private let fires = SCNNode(), heat = SCNNode(), labels = SCNNode(), marker = SCNNode()
         private var markerRings: [SCNNode] = []
         private let hoverRing = SCNNode(), hoverTag = SCNNode()
@@ -138,7 +138,6 @@ struct GlobeView: NSViewRepresentable {
         // `-zoom 1` on the command line starts fully zoomed in.
         private var zoom: Double = max(-0.2, min(1, UserDefaults.standard.double(forKey: "zoom"))), zoomNow: Double = 0
         private var pointerX: CGFloat = 0, pointerY: CGFloat = 0, camX: CGFloat = 0, camY: CGFloat = 0
-        private var gridNow: Float = 0, auroraNow: Float = 0, pulseNow: Float = 0
         private var timer: Timer?
         private var lastTick = CACurrentMediaTime()
 
@@ -147,7 +146,6 @@ struct GlobeView: NSViewRepresentable {
         private var meshGeneration = 0
         private var labelSignature = ""
         private var markerID: UUID?
-        private var pingRegion: String?
         private var lastRegionFocus = 0
         private var lastFocus = 0
         private var hasFacedData = false
@@ -171,14 +169,6 @@ struct GlobeView: NSViewRepresentable {
             clouds.geometry = cloudShell
             clouds.renderingOrder = 5
             clouds.runAction(.repeatForever(.rotateBy(x: 0, y: .pi * 2, z: 0, duration: 1400)))
-            let gridShell = SCNSphere(radius: 1.01); gridShell.segmentCount = 120
-            gridShell.firstMaterial = Bodies.gridMaterial(tint: NSColor(Theme.onDark))
-            grid.geometry = gridShell
-            grid.renderingOrder = 6
-            let auroraShell = SCNSphere(radius: 1.03); auroraShell.segmentCount = 120
-            auroraShell.firstMaterial = Bodies.auroraMaterial()
-            aurora.geometry = auroraShell
-            aurora.renderingOrder = 7
             let heatShell = SCNSphere(radius: 1.003); heatShell.segmentCount = 160
             heatShell.firstMaterial = Bodies.heatMaterial()
             heat.geometry = heatShell
@@ -189,7 +179,7 @@ struct GlobeView: NSViewRepresentable {
             marker.isHidden = true
             labels.renderingOrder = 20
             for n in [heat, fires, marker, labels] { earth.addChildNode(n) }
-            for n in [earth, clouds, grid, aurora] { earthSpin.addChildNode(n) }
+            for n in [earth, clouds] { earthSpin.addChildNode(n) }
             earthTilt.addChildNode(earthSpin)
             earthPivot.addChildNode(earthTilt)
 
@@ -279,15 +269,6 @@ struct GlobeView: NSViewRepresentable {
                     marker.isHidden = false
                 } else {
                     marker.isHidden = true
-                }
-            }
-
-            let region = store.selectedRegion
-            if region?.id != pingRegion {
-                pingRegion = region?.id
-                if let region {
-                    earth.geometry?.firstMaterial?.setValue(
-                        NSValue(scnVector3: sphereVector(lat: region.latitude, lon: region.longitude)), forKey: "pingDir")
                 }
             }
 
@@ -461,9 +442,6 @@ struct GlobeView: NSViewRepresentable {
             zoomNow += (zoom - zoomNow) * Double(1 - exp(-8 * dt))
 
             let fade = 1 - exp(-5 * dt)
-            gridNow += ((fx.grid ? 1 : 0) - gridNow) * fade
-            auroraNow += ((fx.aurora ? 1 : 0) - auroraNow) * fade
-            pulseNow += ((fx.pulse && pingRegion != nil ? 1 : 0) - pulseNow) * fade
 
             SCNTransaction.begin()
             SCNTransaction.animationDuration = 0
@@ -474,9 +452,6 @@ struct GlobeView: NSViewRepresentable {
             camera.position = SCNVector3(camX * (1 - 0.7 * z) + Self.center.x * z,
                                          camY * (1 - 0.7 * z) + Self.center.y * z,
                                          Self.cameraDistance - 3.0 * z)
-            grid.geometry?.firstMaterial?.setValue(NSNumber(value: gridNow * 0.5), forKey: "amount")
-            aurora.geometry?.firstMaterial?.setValue(NSNumber(value: auroraNow), forKey: "amount")
-            earth.geometry?.firstMaterial?.setValue(NSNumber(value: pulseNow), forKey: "pingOn")
             // Embers, labels and the selection ring hold their on-screen size as the camera moves in.
             let hold = Float(1 / (1 + 2.4 * max(0, zoomNow)))
             // Close up, the soft heat glow steps back and the individual sparks carry the picture.

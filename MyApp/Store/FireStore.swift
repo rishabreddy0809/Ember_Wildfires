@@ -516,9 +516,6 @@ enum AppMode: String, CaseIterable, Identifiable {
 /// Globe effects the user can switch on and off.
 struct SceneFX: Equatable {
     var clouds = true
-    var grid = false
-    var aurora = false
-    var pulse = false
     var spin = false
 }
 
