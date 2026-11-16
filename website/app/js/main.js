@@ -50,7 +50,7 @@ const globe = createGlobe($('#globe'), {
 // ---------------------------------------------------------------- data
 
 async function load() {
-  setStatus('loading', 'Contacting NASA FIRMS…');
+  setLoading(true);
   $('#loader').hidden = false;
   $('#loader-error').hidden = true;
   $('#loader-text').textContent = 'Downloading the last 48 hours of fire detections from NASA FIRMS and scoring each one…';
@@ -63,25 +63,19 @@ async function load() {
     apply();
     if (first && state.sum.regions[0]) globe.flyTo(state.sum.regions[0].lat, state.sum.regions[0].lon);
     $('#loader').hidden = true;
-    const h = f.header;
-    const missing = ['modis', 'viirs'].filter((s) => h.sources[s]?.error);
-    setStatus(missing.length ? 'warn' : 'ok',
-      missing.length ? `${missing.map((s) => s.toUpperCase()).join(' and ')} unavailable right now` : `Live · updated ${ago(Date.parse(h.fetchedAt))}`);
-    console.info(`Ember: ${f.n} detections in ${Math.round(performance.now() - t0)} ms`, h);
+    setLoading(false);
+    console.info(`Ember: ${f.n} detections in ${Math.round(performance.now() - t0)} ms`, f.header);
   } catch (e) {
     console.error(e);
     $('#loader-error').hidden = false;
     $('#loader-error-text').textContent = e.message;
     $('#loader-text').textContent = "Couldn't download the fire data.";
-    setStatus('error', 'Offline');
+    setLoading(false);
   }
 }
 
-function setStatus(kind, text) {
-  const s = $('#status');
-  s.dataset.kind = kind;
-  $('#status-text').textContent = text;
-  $('#refresh').disabled = kind === 'loading';
+function setLoading(on) {
+  $('#refresh').disabled = on;
 }
 
 /** Recomputes everything for the current display mode. */
@@ -334,7 +328,6 @@ addEventListener('keydown', (e) => {
   if (e.key === '[') stepRegion(-1);
 });
 // Keep "updated N min ago" current.
-setInterval(() => { const h = state.data?.header; if (h && $('#status').dataset.kind === 'ok') $('#status-text').textContent = `Live · updated ${ago(Date.parse(h.fetchedAt))}`; }, 60000);
 
 window.ember = { globe, state };   // handy from the browser console
 load();

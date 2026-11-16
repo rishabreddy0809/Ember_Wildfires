@@ -27,14 +27,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 /* ---------- top bar ---------- */
 .top { display: flex; align-items: center; gap: 14px; padding: 10px 16px 8px; color: var(--on-dark); }
 .brand { display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font: 26px/1 var(--serif); }
-.status { margin: 0 auto; display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px;
-  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600; white-space: nowrap; }
-.status i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--fair); }
-.status[data-kind="ok"] i { background: #5fd38d; box-shadow: 0 0 0 4px rgba(95,211,141,0.18); }
-.status[data-kind="loading"] i { animation: blink 1s ease-in-out infinite; }
-.status[data-kind="error"] i { background: var(--poor); }
-@keyframes blink { 50% { opacity: 0.25; } }
-.top-actions { display: flex; align-items: center; gap: 8px; }
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .round { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
   background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: var(--on-dark); }
 .round svg { width: 17px; height: 17px; }
@@ -186,7 +179,6 @@ h2 { font-size: 13.5px; font-weight: 650; margin: 0 0 9px; }
   body { overflow: auto; }
   .only-narrow { display: grid !important; }
   .pill { display: none; }
-  .status { margin: 0 auto 0 4px; font-size: 12px; padding: 6px 11px; overflow: hidden; text-overflow: ellipsis; }
   .shell { display: flex; flex-direction: column; }
   .stage { order: 0; height: 62vh; min-height: 380px; flex: none; }
   .side { order: 1; overflow: visible; }
