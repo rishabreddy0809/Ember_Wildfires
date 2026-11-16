@@ -111,7 +111,10 @@ h2 { font-size: 13.5px; font-weight: 650; margin: 0 0 9px; }
 .zoom { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: rgba(20,16,32,0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .zoom button { width: 34px; height: 34px; border: 0; background: none; color: var(--on-dark); font-size: 19px; cursor: pointer; }
 .zoom button:hover { background: rgba(255,255,255,0.12); }
-.legend { position: absolute; right: 12px; bottom: 12px; padding: 8px 12px; border-radius: 12px; background: rgba(13,11,24,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 14px; color: var(--on-dark); font-size: 12.5px; font-weight: 600; text-shadow: 0 1px 4px #000; pointer-events: none; }
+/* A soft fade at the bottom instead of a box, so the Earth is never cut by a hard edge. */
+.stage::after { content: ""; position: absolute; inset: auto 0 0 0; height: 90px; pointer-events: none;
+  background: linear-gradient(to top, rgba(7,6,13,0.75), rgba(7,6,13,0)); }
+.legend { z-index: 1; position: absolute; right: 16px; bottom: 12px; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 14px; color: var(--on-dark); font-size: 12.5px; font-weight: 600; text-shadow: 0 1px 4px #000; pointer-events: none; }
 .legend span { display: flex; align-items: center; gap: 6px; }
 .legend .faint { color: rgba(253,246,236,0.65); font-weight: 500; }
 .legend p { flex-basis: 100%; text-align: right; margin: 2px 0 0; color: rgba(253,246,236,0.6); font-weight: 500; }
@@ -197,3 +200,6 @@ h2 { font-size: 13.5px; font-weight: 650; margin: 0 0 9px; }
   .inspector-wrap.open { transform: none; }
   .inspector { padding-top: 26px; }
 }
+
+/* Everything over the globe sits above the bottom fade. */
+.stage > :not(canvas) { z-index: 2; }
