@@ -66,11 +66,12 @@ body:not(.loading) .loader { opacity: 0; visibility: hidden; }
 }
 .nav.solid { background: rgba(6,7,10,0.78); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4); border-bottom-color: var(--card-line); }
 .brand { display: inline-flex; align-items: center; gap: 9px; font: 800 1.1rem var(--display); font-stretch: 112%; letter-spacing: -0.01em; color: inherit; text-decoration: none; }
-#nav-links { display: flex; align-items: center; gap: 24px; }
+#nav-links { display: flex; align-items: center; gap: 24px; margin-left: auto; }
 #nav-links a { font: 500 0.88rem var(--sans); color: inherit; text-decoration: none; opacity: 0.7; padding: 4px 0; border-bottom: 1px solid transparent; transition: opacity 0.2s; }
 #nav-links a:hover { opacity: 1; }
 #nav-links a.active { opacity: 1; border-bottom-color: var(--fire); }
-#nav-links a.nav-cta { opacity: 1; padding: 7px 16px; border-radius: 999px; background: var(--fire-grad); color: #1a0a02; font-weight: 650; border: 0; box-shadow: 0 4px 20px rgba(255,106,43,0.35); }
+.nav-cta { flex: none; display: inline-flex; align-items: center; gap: 6px; font: 650 0.88rem var(--sans); text-decoration: none; padding: 8px 17px; border-radius: 999px; background: var(--fire-grad); color: #1a0a02; box-shadow: 0 4px 20px rgba(255,106,43,0.35); transition: transform 0.2s, box-shadow 0.2s; }
+.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 26px rgba(255,106,43,0.5); }
 .nav-toggle { display: none; background: none; border: 0; padding: 10px; cursor: pointer; color: inherit; }
 .nav-toggle span { display: block; width: 20px; height: 1.5px; background: currentColor; margin: 5px 0; }
 
@@ -444,7 +445,8 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
   #nav-links { display: none; position: fixed; top: 62px; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; padding: 8px 20px 18px; background: rgba(6,7,10,0.96); backdrop-filter: blur(14px); border-bottom: 1px solid var(--card-line); }
   #nav-links.open { display: flex; }
   #nav-links a { padding: 12px 0; border-bottom: 1px solid var(--card-line); opacity: 1; }
-  #nav-links a.nav-cta { margin-top: 12px; text-align: center; padding: 12px; }
+  .nav-cta { margin-left: auto; padding: 7px 14px; }
+  .nav-toggle { margin-right: -10px; }
   .stat-grid, .data-grid, .brief { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {

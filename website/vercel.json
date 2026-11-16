@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/fires.js": {
+      "includeFiles": "api/_model/**",
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
+}

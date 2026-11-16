@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ember: live wildfire globe</title>
+  <meta name="description" content="Every fire NASA satellites saw on Earth in the last 48 hours, on a 3D globe, with a machine-learning score for which ones are real wildfires.">
+  <meta name="theme-color" content="#0d0b18">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Schibsted+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+  <!-- Start the slow things at once: the live data and the Earth pictures -->
+  <link rel="preload" href="/api/fires" as="fetch" crossorigin>
+  <link rel="preload" href="img/earth_day.jpg" as="image" crossorigin>
+  <link rel="modulepreload" href="js/main.js">
+  <link rel="modulepreload" href="js/globe.js">
+  <link rel="modulepreload" href="js/data.js">
+  <link rel="modulepreload" href="../vendor/three/three.module.min.js">
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three/three.module.min.js" } }
+  </script>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="../" title="Back to the Ember homepage"><img src="../favicon.svg" alt="" width="20" height="20">Ember</a>
+  <div class="status" id="status" data-kind="loading"><i></i><span id="status-text">Contacting NASA FIRMS…</span></div>
+  <div class="top-actions">
+    <button class="round" id="refresh" data-act="refresh" title="Download the latest data" aria-label="Refresh">
+      <svg viewBox="0 0 20 20"><path d="M16 10a6 6 0 1 1-1.8-4.3M16 3.5v3.2h-3.2"/></svg>
+    </button>
+    <button class="round only-narrow" data-act="panel" title="Details" aria-label="Show details">
+      <svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="2.5"/><path d="M12 4v12"/></svg>
+    </button>
+    <a class="pill" href="../">About Ember</a>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- Left: what to show and where -->
+  <aside class="panel side">
+    <section>
+      <h2>Fire data</h2>
+      <button class="scope" id="scope" title="Back to the whole world">
+        <span class="globe-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.3 3.8 5.1 3.8 8.5s-1.2 6.2-3.8 8.5c-2.6-2.3-3.8-5.1-3.8-8.5S9.4 5.8 12 3.5z"/></svg></span>
+        <span><b class="serif" id="scope-name">Whole world</b><small id="scope-sub">Loading…</small></span>
+      </button>
+    </section>
+    <section>
+      <div class="row"><h2>Show</h2><span class="muted" id="shown"></span></div>
+      <div class="seg" id="modes" role="group" aria-label="Which detections to show">
+        <button data-mode="both" aria-pressed="true">Both</button>
+        <button data-mode="modis" aria-pressed="false">MODIS</button>
+        <button data-mode="viirs" aria-pressed="false">VIIRS</button>
+        <button data-mode="wildfire" aria-pressed="false">Wildfires</button>
+      </div>
+      <p class="caption" id="caption">Every detection from both sensors, exactly as FIRMS reported it.</p>
+    </section>
+    <section class="grow">
+      <div class="row"><h2>Where it's burning</h2><span class="muted" id="region-count"></span></div>
+      <label class="search"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5"/><path d="M12.3 12.3 16 16"/></svg>
+        <input id="search" type="search" placeholder="Search regions" autocomplete="off"></label>
+      <ul class="regions" id="regions"></ul>
+    </section>
+    <footer class="source">Data: NASA FIRMS, MODIS C6.1 and NOAA-20 VIIRS, last 48 hours.</footer>
+  </aside>
+
+  <!-- Middle: the globe -->
+  <main class="stage" id="stage">
+    <canvas id="globe" aria-label="3D globe of fire detections"></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="card" id="card">
+      <div class="card-top"><b class="serif" id="card-count">—</b><span id="card-what">fire detections</span></div>
+      <div class="chips" id="card-chips"></div>
+    </div>
+    <div class="fx" role="group" aria-label="Globe options">
+      <button data-act="clouds" aria-pressed="true">Clouds</button>
+      <button data-act="spin" aria-pressed="false">Spin</button>
+    </div>
+    <div class="zoom">
+      <button data-act="zoom-in" aria-label="Zoom in">+</button>
+      <button data-act="zoom-out" aria-label="Zoom out">−</button>
+    </div>
+    <div class="legend">
+      <span><i class="swatch modis"></i>MODIS</span>
+      <span><i class="swatch viirs"></i>VIIRS</span>
+      <span class="faint">faint → strong</span>
+      <p>Drag to turn, scroll to zoom. Point at a fire, then click it.</p>
+    </div>
+    <div class="tip" id="tip" hidden></div>
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      <p id="loader-text">Downloading the last 48 hours of fire detections from NASA FIRMS…</p>
+      <div id="loader-error" hidden>
+        <p class="err" id="loader-error-text"></p>
+        <button class="btn primary" data-act="retry">Try again</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Right: details -->
+  <aside class="panel inspector-wrap" id="inspector-wrap">
+    <button class="close only-narrow" data-act="panel" aria-label="Close details">×</button>
+    <div class="inspector" id="inspector"></div>
+  </aside>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
