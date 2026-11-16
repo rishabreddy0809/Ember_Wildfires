@@ -162,6 +162,11 @@ export const activity = (perDay) => (perDay >= 2500 ? 'intense' : perDay >= 250 
 
 /** Totals for everything shown, and for each region. `days` = how many days the data covers. */
 export function summarize(f, mode, days) {
+  if (!f.cosLon) {   // the middle of the fires uses longitude as an angle; worked out once
+    f.cosLon = new Float32Array(f.n); f.sinLon = new Float32Array(f.n);
+    for (let i = 0; i < f.n; i++) { const a = f.lon[i] * Math.PI / 180; f.cosLon[i] = Math.cos(a); f.sinLon[i] = Math.sin(a); }
+  }
+  const cosLon = f.cosLon, sinLon = f.sinLon;
   const make = (name, continent, id) => ({
     id, name, continent, count: 0, modis: 0, viirs: 0, scored: 0, wildfire: 0, night: 0, high: 0,
     peak: 0, total: 0, frps: [], latSum: 0, x: 0, y: 0, top: [], lat0: 90, lat1: -90,
@@ -169,29 +174,36 @@ export function summarize(f, mode, days) {
   const world = make('Whole world', 'Everywhere', -1);
   const regions = REGIONS.map((r) => make(r.name, r.continent, r.id));
   const cut = THRESHOLD * 10000;
+  const add = (t, i, frp, valid) => {
+    t.count++;
+    if (f.sensor[i]) t.viirs++; else t.modis++;
+    const s = f.score[i];
+    if (s !== 65535) { t.scored++; if (s >= cut) t.wildfire++; }
+    if (f.daynight[i] === 1) t.night++;
+    const c = f.conf[i];
+    if (c === 103 || (c >= 80 && c <= 100)) t.high++;
+    t.total += frp;
+    if (valid) t.frps.push(frp);
+    const la = f.lat[i];
+    t.latSum += la; t.x += cosLon[i]; t.y += sinLon[i];
+    if (la < t.lat0) t.lat0 = la;
+    if (la > t.lat1) t.lat1 = la;
+    if (frp > t.peak) t.peak = frp;
+    // Five strongest by fire power (a short insertion, only when it beats the fifth)
+    const top = t.top;
+    if (top.length < 5 || frp > (f.frp[top[4]] || 0)) {
+      let k = Math.min(top.length, 4);
+      if (top.length < 5) top.push(i);
+      while (k > 0 && (f.frp[top[k - 1]] || 0) < frp) { top[k] = top[k - 1]; k--; }
+      top[k] = i;
+    }
+  };
   for (let i = 0; i < f.n; i++) {
     if (!shows(f, i, mode)) continue;
-    const frp = Number.isNaN(f.frp[i]) ? 0 : f.frp[i];
-    const c = f.conf[i], s = f.score[i];
-    for (const t of [world, regions[f.region[i]]]) {
-      t.count++;
-      if (f.sensor[i]) t.viirs++; else t.modis++;
-      if (s !== 65535) { t.scored++; if (s >= cut) t.wildfire++; }
-      if (f.daynight[i] === 1) t.night++;
-      if (c === 103 || (c >= 80 && c <= 100)) t.high++;
-      t.total += frp;
-      if (!Number.isNaN(f.frp[i])) t.frps.push(frp);
-      // Where the fires are: the middle of their positions (longitude as an angle, to cross 180°).
-      t.latSum += f.lat[i];
-      const a = f.lon[i] * Math.PI / 180; t.x += Math.cos(a); t.y += Math.sin(a);
-      if (f.lat[i] < t.lat0) t.lat0 = f.lat[i];
-      if (f.lat[i] > t.lat1) t.lat1 = f.lat[i];
-      if (frp > t.peak) t.peak = frp;
-      // Five strongest by fire power
-      if (t.top.length < 5 || frp > f.frp[t.top[4]]) {
-        t.top.push(i); t.top.sort((a2, b2) => (f.frp[b2] || 0) - (f.frp[a2] || 0)); if (t.top.length > 5) t.top.pop();
-      }
-    }
+    const valid = !Number.isNaN(f.frp[i]);
+    const frp = valid ? f.frp[i] : 0;
+    add(world, i, frp, valid);
+    add(regions[f.region[i]], i, frp, valid);
   }
   for (const t of [world, ...regions]) {
     t.lat = t.count ? t.latSum / t.count : 0;
@@ -199,12 +211,32 @@ export function summarize(f, mode, days) {
     t.perDay = t.count / Math.max(1, days);
     t.activity = activity(t.perDay);
     if (t.frps.length) {
-      const a = Float32Array.from(t.frps).sort();
-      t.median = a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2;
+      const a = Float32Array.from(t.frps), m = a.length >> 1;
+      const hi = select(a, m);
+      t.median = a.length % 2 ? hi : (select(a, m - 1, m) + hi) / 2;
     } else t.median = null;
     t.frps = null;
   }
   return { world, regions: regions.filter((r) => r.count > 0).sort((a, b) => b.count - a.count) };
+}
+
+/** The k-th smallest value of `a` (reorders `a`), without sorting all of it (quickselect).
+ *  `end` limits the search to a[0..end), used for the lower middle of an even count. */
+function select(a, k, end = a.length) {
+  let lo = 0, hi = end - 1;
+  while (hi > lo) {
+    const pivot = a[(lo + hi) >> 1];
+    let i = lo, j = hi;
+    while (i <= j) {
+      while (a[i] < pivot) i++;
+      while (a[j] > pivot) j--;
+      if (i <= j) { const t = a[i]; a[i] = a[j]; a[j] = t; i++; j--; }
+    }
+    if (k <= j) hi = j; else if (k >= i) lo = i; else break;
+  }
+  if (end === a.length) return a[k];
+  let mx = -Infinity; for (let q = 0; q < end; q++) if (a[q] > mx) mx = a[q];   // after select(a, m), a[0..m) holds the m smallest
+  return mx;
 }
 
 // ---------------------------------------------------------------- formatting

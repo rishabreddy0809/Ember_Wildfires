@@ -15,7 +15,11 @@ const REACH = 16;                 // how close (in CSS pixels) the pointer must 
 
 export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  // Sharpness: up to 2 pixels per point. If frames get slow (an older laptop or phone, a huge
+  // screen), it steps down to keep the globe smooth; see adapt() below.
+  const maxRatio = Math.min(devicePixelRatio || 1, 2);
+  let pixelRatio = maxRatio;
+  renderer.setPixelRatio(pixelRatio);
   renderer.setClearColor(0x000000, 0);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 100);
@@ -111,7 +115,7 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
     const dpp = degPerPixel() / Math.max(1, renderer.getPixelRatio() * 0.75);   // degrees per screen pixel
     const z = Math.max(3, Math.min(7, Math.ceil(Math.log2(288 / (512 * dpp)))));
     const tileDeg = 288 / 2 ** z, cols = Math.round(360 / tileDeg), rows = Math.round(180 / tileDeg);
-    const half = Math.min(70, degPerPixel() * Math.max(canvas.clientWidth, canvas.clientHeight) * 0.9);
+    const half = Math.min(70, degPerPixel() * Math.max(size.w, size.h) * 0.9);
     const halfLon = Math.min(170, half / Math.max(0.15, Math.cos(view.lat * Math.PI / 180)));
     const r0 = Math.max(0, Math.floor((90 - (view.lat + half)) / tileDeg)), r1 = Math.min(rows - 1, Math.floor((90 - (view.lat - half)) / tileDeg));
     const c0 = Math.floor((wrap(view.lon) + 180 - halfLon) / tileDeg), c1 = Math.floor((wrap(view.lon) + 180 + halfLon) / tileDeg);
@@ -121,7 +125,7 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
     patchKey = key;
     const job = ++patchJob;
     const nx = c1 - c0 + 1, ny = r1 - r0 + 1;
-    const scale = Math.min(1, 4096 / (512 * Math.max(nx, ny)));
+    const scale = Math.min(1, 2048 / (512 * Math.max(nx, ny)));
     const ts = Math.floor(512 * scale);
     const cv = document.createElement('canvas'); cv.width = nx * ts; cv.height = ny * ts;
     const ctx = cv.getContext('2d');
@@ -139,7 +143,9 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
     patchMat.uniforms.uDay.value?.dispose();
     const t = new THREE.CanvasTexture(cv);
     t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    // No mipmaps: the tiles already match the zoom, and skipping them makes the upload to the
+    // graphics card quick enough not to stutter.
+    t.generateMipmaps = false; t.minFilter = THREE.LinearFilter;
     patchMat.uniforms.uDay.value = t;
     patch.visible = true;
   }
@@ -363,7 +369,7 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
 
   // Degrees of arc per CSS pixel at the point of the globe facing the camera.
   function degPerPixel() {
-    const h = canvas.clientHeight || 1;
+    const h = size.h || 1;
     return (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (view.dist - R)) / h * 57.2958;
   }
 
@@ -410,14 +416,19 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
     toVec(lat, lon, R, tmp);
     const facing = tmp.dot(camDir.copy(camera.position).normalize());
     tmp.project(camera);
-    return { x: (tmp.x + 1) / 2 * canvas.clientWidth, y: (1 - tmp.y) / 2 * canvas.clientHeight, facing };
+    return { x: (tmp.x + 1) / 2 * size.w, y: (1 - tmp.y) / 2 * size.h, facing };
   }
 
   // ---------------------------------------------------------------- loop
   let dirty = true, last = performance.now(), raf = 0, running = true, patchClock = 0;
+  // The canvas size, read only when it changes: reading it every frame makes the browser
+  // recalculate the page layout, which was the biggest cost per frame.
+  const size = { w: canvas.clientWidth, h: canvas.clientHeight };
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
+    size.w = w; size.h = h;
+    renderer.setPixelRatio(pixelRatio);
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -475,8 +486,22 @@ export function createGlobe(canvas, { onHover, onPick, onMove } = {}) {
     patchMat.uniforms.uFade.value += (fadeTo - patchMat.uniforms.uFade.value) * Math.min(1, dt * 5);
     patch.visible = patchMat.uniforms.uFade.value > 0.01;
     renderer.render(scene, camera);
-    onMove?.();
+    if (moving || dirty) onMove?.();   // labels only need placing when the view changed
     dirty = false;
+    adapt(dt);
+  }
+  // Watches the frame rate. Two seconds averaging under ~45 fps: draw fewer pixels.
+  // A long stretch at full speed after stepping down: try one step sharper again.
+  let slowT = 0, fastT = 0, frames = 0, spent = 0;
+  function adapt(dt) {
+    frames++; spent += dt;
+    if (spent < 2) return;
+    const fps = frames / spent; frames = 0; spent = 0;
+    if (fps < 45 && pixelRatio > 1) { slowT++; fastT = 0; }
+    else if (fps > 57 && pixelRatio < maxRatio) { fastT++; slowT = 0; }
+    else { slowT = 0; fastT = 0; }
+    if (slowT >= 1) { pixelRatio = Math.max(1, pixelRatio - 0.25); slowT = 0; resize(); fireUniforms.uPR.value = pixelRatio; }
+    if (fastT >= 15) { pixelRatio = Math.min(maxRatio, pixelRatio + 0.25); fastT = 0; resize(); fireUniforms.uPR.value = pixelRatio; }
   }
   raf = requestAnimationFrame(frame);
   document.addEventListener('visibilitychange', () => {

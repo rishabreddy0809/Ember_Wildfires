@@ -88,7 +88,9 @@ function setStatus(kind, text) {
 function apply() {
   const f = state.data;
   if (!f) return;
-  state.sum = summarize(f, state.mode, dayCount(f.header));
+  // Totals per mode are kept, so switching back and forth is instant.
+  const cache = (f.sums ??= {});
+  state.sum = cache[state.mode] ??= summarize(f, state.mode, dayCount(f.header));
   globe.setShown((i) => shows(f, i, state.mode));
   globe.setBoost(state.mode === 'wildfire' ? 1.7 : 1);   // few fires: draw them bigger
   if (state.fire >= 0 && !shows(f, state.fire, state.mode)) { state.fire = -1; globe.select(-1); }
@@ -226,15 +228,14 @@ function renderLabels() {
   const layer = $('#labels');
   const top = state.region == null ? state.sum.regions.slice(0, 7) : state.sum.regions.filter((r) => r.id === state.region);
   layer.innerHTML = top.map((r) => `<button class="label ${r.activity}" data-region="${r.id}"><i></i>${esc(r.name)} <span>${compact(r.count)}</span></button>`).join('');
-  labels = top.map((r, k) => ({ r, el: layer.children[k] }));
+  labels = top.map((r, k) => ({ r, el: layer.children[k], w: layer.children[k].offsetWidth || 120 }));   // measured once
   placeLabels();
 }
 function placeLabels() {
   const placed = [];
-  for (const { r, el } of labels) {
+  for (const { r, el, w } of labels) {
     const p = globe.screenOf(r.lat, r.lon);
     // Busiest first; a label that would sit on top of a busier one is hidden.
-    const w = el.offsetWidth || 120;
     const box = { x0: p.x - 9, x1: p.x - 9 + w, y0: p.y - 12, y1: p.y + 12 };
     const clash = placed.some((b) => box.x0 < b.x1 + 4 && box.x1 > b.x0 - 4 && box.y0 < b.y1 && box.y1 > b.y0);
     const show = p.facing > 0.25 && !clash;
