@@ -1,0 +1,177 @@
+{
+  "run_utc": "2026-11-13 17:49",
+  "data_from_utc": "2026-11-06 00:58",
+  "data_to_utc": "2026-11-13 15:56",
+  "cutoff": 0.6,
+  "incidents": {
+    "wildfires": 136,
+    "prescribed": 176,
+    "mapped_perimeters": 42
+  },
+  "detections": {
+    "WF": {
+      "detections": 111,
+      "kept_by_model": 0.04504504504504504
+    },
+    "RX": {
+      "detections": 190,
+      "kept_by_model": 0.0
+    },
+    "none": {
+      "detections": 10996,
+      "kept_by_model": 0.0034558021098581304
+    }
+  },
+  "detections_california": {
+    "WF": {
+      "detections": 11,
+      "kept_by_model": 0.0
+    },
+    "RX": {
+      "detections": 66,
+      "kept_by_model": 0.0
+    },
+    "none": {
+      "detections": 1421,
+      "kept_by_model": 0.026038001407459536
+    }
+  },
+  "fires": {
+    "WF": {
+      "seen_by_firms": 12,
+      "kept_by_model": 1,
+      "by_size": {
+        "<10 acres": "0/2",
+        "10-100": "0/2",
+        "100-1,000": "0/7",
+        "1,000+": "1/1"
+      },
+      "reported_total": 136
+    },
+    "RX": {
+      "seen_by_firms": 36,
+      "kept_by_model": 0,
+      "by_size": {
+        "<10 acres": "0/12",
+        "10-100": "0/7",
+        "100-1,000": "0/16",
+        "1,000+": "0/1"
+      },
+      "reported_total": 176
+    }
+  },
+  "wildfires_detected_last_24h": [
+    {
+      "name": "Mud",
+      "state": "ID",
+      "acres": 1000,
+      "contained_pct": null,
+      "detections_7d": 42,
+      "kept": 5,
+      "max_prob": 0.68,
+      "caught": true,
+      "last_seen_utc": "2026-11-12 22:56"
+    },
+    {
+      "name": "Red Hill",
+      "state": "MS",
+      "acres": 519,
+      "contained_pct": null,
+      "detections_7d": 13,
+      "kept": 0,
+      "max_prob": 0.29,
+      "caught": false,
+      "last_seen_utc": "2026-11-12 21:14"
+    },
+    {
+      "name": "Mtz/Bdc/Rancho",
+      "state": "CA",
+      "acres": 0,
+      "contained_pct": null,
+      "detections_7d": 1,
+      "kept": 0,
+      "max_prob": 0.39,
+      "caught": false,
+      "last_seen_utc": "2026-11-12 20:57"
+    }
+  ],
+  "wildfires_missed": [
+    {
+      "name": "Foot Creek",
+      "state": "WY",
+      "acres": 683,
+      "detections_7d": 5,
+      "max_prob": 0.1
+    },
+    {
+      "name": "Red Hill",
+      "state": "MS",
+      "acres": 519,
+      "detections_7d": 13,
+      "max_prob": 0.29
+    },
+    {
+      "name": "Campbell - Glassman Way",
+      "state": "TN",
+      "acres": 380,
+      "detections_7d": 1,
+      "max_prob": 0.05
+    },
+    {
+      "name": "Hunts Fork",
+      "state": "VA",
+      "acres": 313,
+      "detections_7d": 4,
+      "max_prob": 0.1
+    },
+    {
+      "name": "Hwy 541",
+      "state": "MS",
+      "acres": 240,
+      "detections_7d": 17,
+      "max_prob": 0.21
+    },
+    {
+      "name": "Bridge Creek",
+      "state": "OR",
+      "acres": 179,
+      "detections_7d": 1,
+      "max_prob": 0.07
+    },
+    {
+      "name": "Peavine",
+      "state": "NV",
+      "acres": 150,
+      "detections_7d": 4,
+      "max_prob": 0.49
+    },
+    {
+      "name": "Kessel",
+      "state": "WV",
+      "acres": 70,
+      "detections_7d": 16,
+      "max_prob": 0.17
+    },
+    {
+      "name": "Anderson 9931",
+      "state": "TX",
+      "acres": 15,
+      "detections_7d": 1,
+      "max_prob": 0.13
+    },
+    {
+      "name": "Bee",
+      "state": "CA",
+      "acres": 0,
+      "detections_7d": 6,
+      "max_prob": 0.0
+    },
+    {
+      "name": "Mtz/Bdc/Rancho",
+      "state": "CA",
+      "acres": 0,
+      "detections_7d": 1,
+      "max_prob": 0.39
+    }
+  ]
+}

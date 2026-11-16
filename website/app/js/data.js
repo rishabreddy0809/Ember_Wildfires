@@ -1,7 +1,7 @@
 // data.js: downloads the live fire data (/api/fires) and works out the regions and totals.
 // The same rules as the Mac app: Store/FireStore.swift and Models/WorldRegion.swift.
 
-export const THRESHOLD = 0.6;   // the model's cut, from ml/outputs/swift_threshold.txt
+export const THRESHOLD = 0.3;   // the model's cut, from ml/outputs/swift_threshold.txt
 
 /** Downloads and reads /api/fires (format described in api/fires.js). */
 export async function loadFires(url = '/api/fires') {

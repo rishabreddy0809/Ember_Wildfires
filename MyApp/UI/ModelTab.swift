@@ -18,12 +18,12 @@ struct ModelTab: View {
                             .font(.body(14)).foregroundStyle(Theme.ink2).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
                         Divide()
                         HStack(alignment: .top, spacing: 16) {
-                            BigStat(label: "Accuracy", value: "97%", caption: "Of 2021 California detections it had never seen.")
-                            BigStat(label: "Precision", value: "99%", caption: "Of those it called wildfire, this share were.")
-                            BigStat(label: "Noise removed", value: "92%", caption: "Of detections that were not wildfire.")
-                            BigStat(label: "Fires caught", value: "126", caption: "Of 168 fires mapped by CAL FIRE that year.")
+                            BigStat(label: "Accuracy", value: "94%", caption: "Of 2024 California detections it had never seen.")
+                            BigStat(label: "Precision", value: "92%", caption: "Of those it called wildfire, this share were.")
+                            BigStat(label: "Noise removed", value: "86%", caption: "Of detections that were not wildfire.")
+                            BigStat(label: "Fires caught", value: "186", caption: "Of 205 fires mapped by CAL FIRE that year.")
                         }
-                        Text("Trained on every California detection of 2020, tested on 2021, at the default 60% cut. On 2022 and 2023 accuracy was 93% and 90%; calling everything a wildfire scores 45%.")
+                        Text("Trained on every California detection of 2020–2023, every month, and tested on 2024 and 2025 at the default 30% cut. It keeps winter fires such as Palisades and Eaton, but lets more farm and prescribed burns through outside fire season. 2025: 93% accuracy, 168 of 185 fires caught.")
                             .font(.body(12.5)).foregroundStyle(Theme.ink2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -45,7 +45,7 @@ struct ModelTab: View {
                                 Text(String(format: "%.0f%%", store.mlThreshold * 100)).font(.body(13)).foregroundStyle(Theme.ink2)
                             }
                             PaperSlider(value: Binding(get: { Double(store.mlThreshold) }, set: { store.setThreshold(Float($0)) }),
-                                        range: 0.3...0.8)
+                                        range: 0.2...0.8)
                                 .accessibilityLabel("Filter sensitivity")
                             HStack(alignment: .top, spacing: 16) {
                                 BigStat(label: "Kept", value: store.wildfireCount.grouped, caption: "Called wildfire at this setting.", size: 36)

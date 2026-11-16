@@ -241,7 +241,7 @@ private struct ShowSection: View {
                 }
                 .padding(.top, 2)
                 PaperSlider(value: Binding(get: { Double(store.mlThreshold) }, set: { store.setThreshold(Float($0)) }),
-                            range: 0.3...0.8)
+                            range: 0.2...0.8)
                     .accessibilityLabel("Filter sensitivity")
                 Text("How sure the model must be to keep a detection. Slide left to catch more small fires, right for fewer false alarms.")
                     .font(.body(12)).foregroundStyle(Theme.ink2).lineSpacing(2).fixedSize(horizontal: false, vertical: true)

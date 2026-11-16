@@ -11,7 +11,7 @@
 'use strict';
 const path = require('node:path');
 const zlib = require('node:zlib');
-const { score, loadModel } = require('./_lib/classifier.js');
+const { score, loadModel, THRESHOLD } = require('./_lib/classifier.js');
 
 const SOURCES = {
   modis: 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/modis-c6.1/csv/MODIS_C6_1_Global_48h.csv',
@@ -132,7 +132,7 @@ module.exports = async function handler(req, res) {
       minute0: times.length ? Math.round(times[0] / 60000) : 0,
       sources: info,
       satellites,
-      threshold: 0.6,
+      threshold: THRESHOLD,
       ms: Date.now() - started,
     });
     // Compressed here, because Vercel caps a function's answer at 4.5 MB before its own compression.

@@ -31,7 +31,7 @@ final class FireStore {
     /// How many detections fall in each twentieth of the probability scale, for the Model view.
     private(set) var scoreHistogram = [Int](repeating: 0, count: 20)
     /// Probability cut for "wildfire". Lower catches more small fires; higher removes more
-    /// non-wildfire detections. Defaults to the value chosen on 2020 data.
+    /// non-wildfire detections. Defaults to the value chosen by cross-validation on 2020-2023.
     private(set) var mlThreshold: Float = WildfireClassifier.threshold
     /// The query that produced the data currently shown, which can differ from `query` while you edit.
     private(set) var loadedQuery: FireQuery?

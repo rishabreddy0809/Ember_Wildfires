@@ -13,7 +13,7 @@ const fs = require('node:fs');
 const zlib = require('node:zlib');
 
 /** Detections at or above this probability count as wildfire (ml/outputs/swift_threshold.txt). */
-const THRESHOLD = 0.6;
+const THRESHOLD = 0.3;
 
 const FEATURES = [
   'is_viirs', 'bright_mir', 'bright_tir', 'delta_t', 'frp', 'log_frp', 'frp_density',

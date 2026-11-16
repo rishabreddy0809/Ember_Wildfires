@@ -1,8 +1,8 @@
 //  WildfireClassifier.swift
 //  Harmonized MODIS + VIIRS wildfire classifier (model v3).
 //
-//  A random forest trained in Python on every California detection of 2020 and tested on
-//  2021 (ml/train_v3.py writes ember_rf.bin; ml/build_static_grids.py writes ember_static.bin).
+//  A random forest trained in Python on every California detection of 2020-2023, all months, and
+//  tested on 2024-2025 (ml/train_v4.py writes ember_rf.bin; ml/build_static_grids.py writes ember_static.bin).
 //  Labels are CAL FIRE perimeters with one pixel of tolerance; small fires are weighted to
 //  count as much as big ones.
 //
@@ -15,14 +15,15 @@
 //  • Whether the other sensor reported anything that UTC day, so the model still works if
 //    one satellite is offline (trained on single-sensor copies of the data).
 //  • Static context: NLCD 2019 land cover and how often the spot burned in 2017–2019.
-//  The features must stay identical to ml/train_v3.py (checked by a parity test, see ml/README.md).
+//  The features must stay identical to ml/train_v3.py (the v4 model in ember_rf.bin uses the same list;
+//  it never splits on `month`, so the month passed here does not change its output) (checked by a parity test, see ml/README.md).
 
 import Foundation
 
 nonisolated enum WildfireClassifier {
     /// Detections at or above this probability count as wildfire.
-    /// Chosen by cross-validation on 2020 only (ml/outputs/swift_threshold.txt).
-    static let threshold: Float = 0.6
+    /// Chosen by leave-one-year-out cross-validation on 2020-2023 (ml/train_v4.py, ml/outputs/swift_threshold.txt).
+    static let threshold: Float = 0.3
 
     /// Feature order. Must match FEATURES in ml/train_v3.py.
     static let featureNames = [
@@ -34,8 +35,8 @@ nonisolated enum WildfireClassifier {
         "lc_forest", "lc_shrub", "lc_grass", "lc_ag", "lc_dev", "hist_months",
     ]
 
-    /// Measured on all 2021 California detections (model trained on 2020 only).
-    static let testSummary = "2021 test at the default setting: 97% accuracy · 99% precision · removes 92% of non-wildfire detections · catches 126 of 168 mapped fires"
+    /// Measured on all 2024 California detections (model trained on 2020-2023 only).
+    static let testSummary = "2024 test at the default setting: 94% accuracy · 92% precision · removes 86% of non-wildfire detections · catches 186 of 205 mapped fires"
 
     private static let forest: EmberForest? = {
         guard let url = Bundle.main.url(forResource: "ember_rf", withExtension: "bin") else { return nil }
